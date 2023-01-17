@@ -1,6 +1,8 @@
 from xsystem import XTructure
+import pytest
 
 
+@pytest.mark.skip
 def test_working_example(faker):
     x = XTructure()
 

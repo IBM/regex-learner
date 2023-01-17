@@ -1,4 +1,5 @@
 from xsystem import get_token_in_tuple
+from xsystem import build_new_token
 
 def test_token_fit_score():
     pass
@@ -24,3 +25,10 @@ def test_tokenization_function():
     assert tokens[2] == "10"
     assert tokens[3] == "-"
     assert tokens[4] == "11"
+
+
+def test_token_createion():
+    token = build_new_token("2023")
+
+    assert token
+    assert len(token.symbols) == 4

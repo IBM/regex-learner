@@ -15,6 +15,7 @@ from re import Match
 from itertools import product
 from typing import Generator
 from typing import Optional
+import string
 
 ALPHA = 1/5
 MAX_BRANCHES = 3
@@ -69,10 +70,10 @@ class SymbolLayer:
 
     def d(self, s: str) -> float:
         if get_ascii_class(s) == self.s_class:
-            return 1
-        if s in self.chars:
+            return 0
+        if not self.is_class and s in self.chars:
             return ALPHA
-        return 0
+        return 1
 
 
 def get_symbols_in_token(t: str) -> Generator[str, None, None]:
@@ -141,17 +142,63 @@ class BranchLayer:
         return self.d(word)
 
 
+def get_class_characters(symbol_class: AsciiClass) -> set(str):
+    if symbol_class == AsciiClass.ALNUM:
+        return get_class_characters(AsciiClass.ALPHA) & get_ascii_class(AsciiClass.DIGIT)
+
+    if symbol_class == AsciiClass.ALPHA:
+        return get_class_characters(AsciiClass.UPPER) & get_ascii_class(AsciiClass.LOWER)
+
+    if symbol_class == AsciiClass.BLANK:
+        return set(" ", "\t")
+
+    if symbol_class == AsciiClass.CNTRL:
+        # CNTRL = auto(),  # Control characters. In ASCII, these characters have octal codes 000 through 037, and 177 (DEL). In other character sets, these are the equivalent characters, if any.
+        raise ValueError()
+        
+    if symbol_class == AsciiClass.DIGIT:
+        return set("0123456789")
+    
+    if symbol_class == AsciiClass.GRAPH:
+        return get_class_characters(AsciiClass.ALPHA) & get_class_characters(AsciiClass.PUNCT)
+
+    if symbol_class == AsciiClass.LOWER:
+        return set("abcdefghijklmnopqrstuvwxyz")
+
+    if symbol_class == AsciiClass.PRINT:
+        return get_class_characters(AsciiClass.ALNUM) & get_class_characters(AsciiClass.PUNCT) & get_ascii_class(AsciiClass.SPACE)
+
+    if symbol_class == AsciiClass.PUNCT:
+        return "!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~" 
+
+    if symbol_class == AsciiClass.UPPER:
+        return set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+    if symbol_class == AsciiClass.XDIGIT:
+        return set("0123456789ABCDEFabcdef")
+
+    # SPACE = auto(),  # Space characters: in the ‘C’ locale, this is tab, newline, vertical tab, form feed, carriage return, and space. See Usage, for more discussion of matching newlines.
+    if symbol_class == AsciiClass.SPACE:
+        return set(
+            "\t\n\x0B\x0C\x0D "
+        )
+
+    raise ValueError()
+
+
+
 def build_new_symbol(symbol: str) -> SymbolLayer:
+    symbol_class = get_ascii_class(symbol)
     return SymbolLayer(
-        s_class=get_ascii_class(symbol),
-        is_class=True,
+        s_class=symbol_class,
+        is_class=False,
         chars=set(symbol)
     )
 
 
 def build_new_token(word: str) -> TokenLayer:
     return TokenLayer(
-        build_new_symbol(symbol) for symbol in word
+        list(build_new_symbol(symbol) for symbol in word)
     )
 
 
