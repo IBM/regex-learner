@@ -1,21 +1,26 @@
 from __future__ import annotations
 from argparse import ArgumentParser
+import math
 
 import sys
-import csv
 
 from dataclasses import dataclass
 from dataclasses import field
 
 from enum import Enum
 from enum import auto
-from re import compile
+import re
+from re import Pattern
+from re import Match
 from itertools import product
 from typing import Generator
+from typing import Optional
 
 ALPHA = 1/5
 MAX_BRANCHES = 3
 BRANCHING_THRESHORLD = .85
+
+DELIMITERS=r"[-#.,]"
 
 
 class AsciiClass(Enum):
@@ -56,18 +61,18 @@ def get_ascii_class(s: str) -> AsciiClass:
     raise ValueError(f"{s} unknown")
 
 
+@dataclass
 class SymbolLayer:
     s_class: AsciiClass
     chars: set[str]
     is_class: bool
 
-    def d_i(self, s: str) -> float:
+    def d(self, s: str) -> float:
         if get_ascii_class(s) == self.s_class:
             return 1
         if s in self.chars:
             return ALPHA
         return 0
-
 
 
 def get_symbols_in_token(t: str) -> Generator[str, None, None]:
@@ -81,32 +86,121 @@ class TokenLayer:
 
     def d(self, t: str) -> float:
         return sum(
-            l_i.d(t_i) for l_i, t_i in product(self.symbols, get_symbols_in_token(t))
+            symbol.d(tuple_element) for symbol, tuple_element in zip(self.symbols, get_symbols_in_token(t))
         ) + abs(
             len(t) - len(self.symbols)
         )
 
 
-def get_token_in_tuple(t: tuple[str, ...]) -> Generator[str, None, None]:
-    raise NotImplementedError()
+def get_token_in_tuple(t: str) -> Generator[str, None, None]:
+    pattern: Pattern = re.compile(DELIMITERS)
+
+    last_match: Optional[Match] = None
+
+    for m in re.finditer(pattern, t):
+        if last_match is None:
+            yield t[:m.start()]
+        else:
+            yield t[last_match.end():m.start()]
+
+        yield t[m.start():m.end()]
+
+        last_match = m
+
+    if last_match is None:
+        yield t
+    else:
+        yield t[last_match.end():]
+
+
+class NullTokenLayer(TokenLayer):
+    def d(self, t: str) -> float:
+        return 1.0 * len(t)
+
+
+NULL_TOKEN = NullTokenLayer()
 
 
 @dataclass
 class BranchLayer:
-    K: list[TokenLayer] = field(default_factory=list)
+    tokens: list[TokenLayer] = field(default_factory=list)
 
-    def d(self, t: tuple[str, ...]) -> float:
+    def d(self, t: str) -> float:
+        tokens: TokenLayer = [
+            self.tokens[i] if i < len(self.tokens) else NULL_TOKEN for i, _ in enumerate(t)
+        ]
+
         return sum(
-            k.d(t_i) for k, t_i in product(self.K, get_token_in_tuple(t))
+            token.d(t_i) for token, t_i in zip(tokens, get_token_in_tuple(t))
         )
+
+    def add(self, word: str) -> None:
+        raise NotImplementedError()
+
+    def fit_score(self, word: str) -> float:
+        return self.d(word)
+
+
+def build_new_symbol(symbol: str) -> SymbolLayer:
+    return SymbolLayer(
+        s_class=get_ascii_class(symbol),
+        is_class=True,
+        chars=set(symbol)
+    )
+
+
+def build_new_token(word: str) -> TokenLayer:
+    return TokenLayer(
+        build_new_symbol(symbol) for symbol in word
+    )
+
+
+def build_new_branch(word: str) -> BranchLayer:
+    return BranchLayer(
+       tokens=[
+        build_new_token(token) for token in get_token_in_tuple(word)
+       ] 
+    )
+
+
+def merge_most_similar(branches: list[BranchLayer]) -> list[BranchLayer]:
+    raise NotImplementedError()
 
 
 @dataclass
 class XTructure:
-    B: list[BranchLayer] = field(default_factory=list)
+    branches: list[BranchLayer] = field(default_factory=list)
 
     def d(self, t: tuple[str, ...]) -> float:
-        return min(b.d(t) for b in self.B)
+        return min(b.d(t) for b in self.branches)
+
+    def learn_new_word(self, word: str) -> None:
+        if not len(self.branches):
+            self.branches.append(build_new_branch(word))
+        else:
+            best_branch = self._best_branch(word)
+
+            if best_branch.d(word) < BRANCHING_THRESHORLD:
+                best_branch.add(word)
+            else:
+                self.branches.append(
+                    build_new_branch(word)
+                )
+
+        if len(self.branches) > MAX_BRANCHES:
+            self.branches = merge_most_similar(self.branches)
+
+    def _best_branch(self, word: str) -> BranchLayer:
+        best_score = math.inf
+        best_branch: Optional[BranchLayer] = None
+
+        for branch in self.branches:
+            branch_score = branch.fit_score(word)
+
+            if branch_score < best_score:
+                best_branch = branch
+
+        return best_branch
 
 
 def build_parser() -> ArgumentParser:
@@ -121,7 +215,7 @@ def build_parser() -> ArgumentParser:
 
 def main() -> int:
     with open(sys.argv[1], encoding="utf-8") as input:
-        pass
+        raise NotImplementedError()
 
     return 0
 
