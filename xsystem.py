@@ -357,7 +357,7 @@ class XTructure:
         return best_branch
     
     def __str__(self) -> str:
-        return str
+        return "|".join(str(branch) for branch in self.branches)
 
 
 def build_parser() -> ArgumentParser:
