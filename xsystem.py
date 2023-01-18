@@ -93,6 +93,41 @@ class SymbolLayer:
             return ALPHA
         return 1
 
+    def __str__(self) -> str:
+        if self.is_class:
+            return get_ascii_class_pattern(self.s_class)
+        else:
+            return "[" + "".join(self.chars) + "]"
+
+    
+def get_ascii_class_pattern(cls: AsciiClass):
+    if cls == AsciiClass.ALNUM:
+        return r"[:alnum:]"
+    if cls == AsciiClass.ALPHA:
+        return r"[:alpha:]"
+    if cls == AsciiClass.BLANK:
+        return r"[:blank:]"
+    if cls == AsciiClass.CNTRL:
+        return r"[:cntrl:]"
+    if cls == AsciiClass.DIGIT:
+        return r"[0-9]"
+    if cls == AsciiClass.GRAPH:
+        return r"[:graph:]"
+    if cls == AsciiClass.LOWER:
+        return r"[:lower:]"
+    if cls == AsciiClass.PRINT:
+        return r"[:print:]"
+    if cls == AsciiClass.PUNCT:
+        return r"[:punct:]"
+    if cls == AsciiClass.SPACE:
+        return r"[:space:]"
+    if cls == AsciiClass.UPPER:
+        return r"[:upper:]"
+    if cls == AsciiClass.XDIGIT:
+        return r"[:xdigit:]"
+    if cls == AsciiClass.ANY:
+        return r"."
+
 
 def get_symbols_in_token(t: str) -> Generator[str, None, None]:
     for c in t:
@@ -110,6 +145,8 @@ class TokenLayer:
             len(t) - len(self.symbols)
         )
 
+    def __str__(self) -> str:
+        return "(" + "".join(str(symbol) for symbol in self.symbols) + ")"
 
 def get_token_in_tuple(t: str) -> Generator[str, None, None]:
     pattern: Pattern = re.compile(DELIMITERS)
@@ -158,6 +195,10 @@ class BranchLayer:
 
     def fit_score(self, word: str) -> float:
         return self.d(word)
+
+    def __str__(self) -> str:
+        return "".join(str(token) for token in self.tokens)
+        
 
 
 def merge_token(new_token: str, token: TokenLayer) -> TokenLayer:
@@ -314,6 +355,9 @@ class XTructure:
                 best_branch = branch
 
         return best_branch
+    
+    def __str__(self) -> str:
+        return str
 
 
 def build_parser() -> ArgumentParser:
