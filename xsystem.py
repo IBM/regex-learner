@@ -37,6 +37,24 @@ class AsciiClass(Enum):
     SPACE = auto(),  # Space characters: in the ‘C’ locale, this is tab, newline, vertical tab, form feed, carriage return, and space. See Usage, for more discussion of matching newlines.
     UPPER = auto(),  # Upper-case letters: in the ‘C’ locale and ASCII character encoding, this is A B C D E F G H I J K L M N O P Q R S T U V W X Y Z.
     XDIGIT = auto(),  # Hexadecimal digits: 0 1 2 3 4 5 6 7 8 9 A B C D E F a b c d e f.
+    ANY = auto(),
+
+
+ASCII_CLASS_HIERARCHY = {
+    AsciiClass.ALNUM: AsciiClass.GRAPH,
+    AsciiClass.ALPHA: AsciiClass.ALNUM,
+    AsciiClass.BLANK: AsciiClass.SPACE,
+    AsciiClass.DIGIT: AsciiClass.ALNUM,
+    AsciiClass.GRAPH: AsciiClass.PRINT,
+    AsciiClass.LOWER: AsciiClass.ALPHA,
+    AsciiClass.PRINT: AsciiClass.ANY,
+    AsciiClass.PUNCT: AsciiClass.GRAPH,
+    AsciiClass.SPACE: AsciiClass.PRINT,
+    AsciiClass.UPPER: AsciiClass.ALPHA,
+    AsciiClass.CNTRL: AsciiClass.ANY,
+    AsciiClass.XDIGIT: AsciiClass.ALNUM,
+    AsciiClass.ANY: None
+}
 
 
 def get_ascii_class(s: str) -> AsciiClass:
@@ -136,18 +154,67 @@ class BranchLayer:
         )
 
     def add(self, word: str) -> None:
-        raise NotImplementedError()
+        self.tokens = [merge_token(nt, token) for nt, token in zip(get_token_in_tuple(word), self.tokens)]
 
     def fit_score(self, word: str) -> float:
         return self.d(word)
 
 
+def merge_token(new_token: str, token: TokenLayer) -> TokenLayer:
+    assert len(new_token) == len(token.symbols)
+
+    return TokenLayer(
+        symbols=[merge_symbols(ns, symbol) for ns, symbol in zip(get_symbols_in_token(new_token), token.symbols)]
+    )
+
+
+def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
+    global ASCII_CLASS_HIERARCHY
+
+    c1_ancestors: set[AsciiClass] = {class1}
+
+    while True:
+        class1 = ASCII_CLASS_HIERARCHY[class1]
+        if class1 is None:
+            break
+    
+        c1_ancestors.add(class1)
+
+    while class2 is not None:
+        if class2 in c1_ancestors:
+            return class2
+        else:
+            class2 = ASCII_CLASS_HIERARCHY[class2]
+
+    if class2 is None:
+        return AsciiClass.ANY
+    
+    raise ValueError()
+    
+
+def merge_symbols(new_symbol: str, symbol: SymbolLayer) -> SymbolLayer:
+    assert len(new_symbol) == 1
+
+    ns_class = get_ascii_class(new_symbol)
+
+    if ns_class != symbol.s_class:
+        ns_class = find_common_ancestor(ns_class, symbol.s_class)
+
+    chars = symbol.chars | {new_symbol}
+
+    return SymbolLayer(
+        ns_class,
+        chars=chars,
+        is_class=len(chars) == len(get_class_characters(ns_class))
+    )
+
+
 def get_class_characters(symbol_class: AsciiClass) -> set(str):
     if symbol_class == AsciiClass.ALNUM:
-        return get_class_characters(AsciiClass.ALPHA) & get_ascii_class(AsciiClass.DIGIT)
+        return get_class_characters(AsciiClass.ALPHA) & get_class_characters(AsciiClass.DIGIT)
 
     if symbol_class == AsciiClass.ALPHA:
-        return get_class_characters(AsciiClass.UPPER) & get_ascii_class(AsciiClass.LOWER)
+        return get_class_characters(AsciiClass.UPPER) & get_class_characters(AsciiClass.LOWER)
 
     if symbol_class == AsciiClass.BLANK:
         return set(" ", "\t")
@@ -169,7 +236,7 @@ def get_class_characters(symbol_class: AsciiClass) -> set(str):
         return get_class_characters(AsciiClass.ALNUM) & get_class_characters(AsciiClass.PUNCT) & get_ascii_class(AsciiClass.SPACE)
 
     if symbol_class == AsciiClass.PUNCT:
-        return "!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~" 
+        return "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" 
 
     if symbol_class == AsciiClass.UPPER:
         return set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -184,7 +251,6 @@ def get_class_characters(symbol_class: AsciiClass) -> set(str):
         )
 
     raise ValueError()
-
 
 
 def build_new_symbol(symbol: str) -> SymbolLayer:
@@ -257,7 +323,6 @@ def build_parser() -> ArgumentParser:
     )
 
     return parser
-
 
 
 def main() -> int:

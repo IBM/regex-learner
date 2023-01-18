@@ -4,6 +4,8 @@ from xsystem import get_ascii_class
 from xsystem import build_new_symbol
 from xsystem import get_class_characters
 from xsystem import AsciiClass
+from xsystem import merge_symbols
+from xsystem import SymbolLayer
 
 
 def test_get_ascii_class():
@@ -43,3 +45,49 @@ def test_symbols_charater_digits():
         }
 
         assert d in get_class_characters(d_class)
+
+
+def test_symbol_merge_same_class():
+    symbol = SymbolLayer(
+        chars={"a"},
+        s_class=AsciiClass.LOWER,
+        is_class=False
+    )
+
+    merged = merge_symbols("b", symbol)
+
+    assert merged is not None
+    assert not merged.is_class
+    assert len(merged.chars) == 2
+    assert merged.s_class == AsciiClass.LOWER
+
+
+def test_symbol_merge_different_class():
+    symbol = SymbolLayer(
+        chars={"a"},
+        s_class=AsciiClass.LOWER,
+        is_class=False
+    )
+
+    merged = merge_symbols("1", symbol)
+
+    assert merged is not None
+    assert not merged.is_class
+    assert len(merged.chars) == 2
+    assert merged.s_class == AsciiClass.ALNUM
+
+
+def test_symbol_merge_to_class():
+    symbol = SymbolLayer(
+        chars=set([s for s in get_class_characters(AsciiClass.LOWER) if s != "c"]),
+        s_class=AsciiClass.LOWER,
+        is_class=False
+    )
+
+    assert len(symbol.chars) == len(get_class_characters(AsciiClass.LOWER)) - 1
+
+    merged = merge_symbols("c", symbol)
+
+    assert merged.is_class
+    assert len(merged.chars) == len(get_class_characters(AsciiClass.LOWER))
+    assert merged.s_class == AsciiClass.LOWER
