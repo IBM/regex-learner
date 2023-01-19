@@ -5,7 +5,7 @@ from xsystem import build_new_symbol
 from xsystem import get_class_characters
 from xsystem import AsciiClass
 from xsystem import merge_symbols
-from xsystem import SymbolLayer
+from xsystem import Symbol
 
 
 def test_get_ascii_class():
@@ -48,7 +48,7 @@ def test_symbols_charater_digits():
 
 
 def test_symbol_merge_same_class():
-    symbol = SymbolLayer(
+    symbol = Symbol(
         chars={"a"},
         s_class=AsciiClass.LOWER,
         is_class=False
@@ -63,7 +63,7 @@ def test_symbol_merge_same_class():
 
 
 def test_symbol_merge_different_class():
-    symbol = SymbolLayer(
+    symbol = Symbol(
         chars={"a"},
         s_class=AsciiClass.LOWER,
         is_class=False
@@ -78,7 +78,7 @@ def test_symbol_merge_different_class():
 
 
 def test_symbol_merge_to_class():
-    symbol = SymbolLayer(
+    symbol = Symbol(
         chars=set([s for s in get_class_characters(AsciiClass.LOWER) if s != "c"]),
         s_class=AsciiClass.LOWER,
         is_class=False

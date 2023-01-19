@@ -1,6 +1,6 @@
-from xsystem import BranchLayer
-from xsystem import TokenLayer
-from xsystem import SymbolLayer
+from xsystem import Branch
+from xsystem import Token
+from xsystem import Symbol
 from xsystem import AsciiClass
 from xsystem import get_class_characters
 import pytest
@@ -10,14 +10,14 @@ def test_add():
     # branch for "\d{4}"
     # examples: 1234
 
-    branch = BranchLayer(
+    branch = Branch(
         tokens=[
-            TokenLayer(
+            Token(
                 symbols=[
-                    SymbolLayer(chars=set(["1"]), s_class=AsciiClass.DIGIT, is_class=False),
-                    SymbolLayer(chars=set(["2"]), s_class=AsciiClass.DIGIT, is_class=False),
-                    SymbolLayer(chars=set(["3"]), s_class=AsciiClass.DIGIT, is_class=False),
-                    SymbolLayer(chars=set(["4"]), s_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol(chars=set(["1"]), s_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol(chars=set(["2"]), s_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol(chars=set(["3"]), s_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol(chars=set(["4"]), s_class=AsciiClass.DIGIT, is_class=False),
                 ]
             )
         ]

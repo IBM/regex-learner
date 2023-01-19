@@ -81,7 +81,7 @@ def get_ascii_class(s: str) -> AsciiClass:
 
 
 @dataclass
-class SymbolLayer:
+class Symbol:
     s_class: AsciiClass
     chars: set[str]
     is_class: bool
@@ -135,8 +135,8 @@ def get_symbols_in_token(t: str) -> Generator[str, None, None]:
 
 
 @dataclass
-class TokenLayer:
-    symbols: list[SymbolLayer] = field(default_factory=list)
+class Token:
+    symbols: list[Symbol] = field(default_factory=list)
 
     def d(self, t: str) -> float:
         return sum(
@@ -169,20 +169,20 @@ def get_token_in_tuple(t: str) -> Generator[str, None, None]:
         yield t[last_match.end():]
 
 
-class NullTokenLayer(TokenLayer):
+class NullToken(Token):
     def d(self, t: str) -> float:
         return 1.0 * len(t)
 
 
-NULL_TOKEN = NullTokenLayer()
+NULL_TOKEN = NullToken()
 
 
 @dataclass
-class BranchLayer:
-    tokens: list[TokenLayer] = field(default_factory=list)
+class Branch:
+    tokens: list[Token] = field(default_factory=list)
 
     def d(self, t: str) -> float:
-        tokens: TokenLayer = [
+        tokens: Token = [
             self.tokens[i] if i < len(self.tokens) else NULL_TOKEN for i, _ in enumerate(t)
         ]
 
@@ -201,10 +201,10 @@ class BranchLayer:
         
 
 
-def merge_token(new_token: str, token: TokenLayer) -> TokenLayer:
+def merge_token(new_token: str, token: Token) -> Token:
     assert len(new_token) == len(token.symbols)
 
-    return TokenLayer(
+    return Token(
         symbols=[merge_symbols(ns, symbol) for ns, symbol in zip(get_symbols_in_token(new_token), token.symbols)]
     )
 
@@ -233,7 +233,7 @@ def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
     raise ValueError()
     
 
-def merge_symbols(new_symbol: str, symbol: SymbolLayer) -> SymbolLayer:
+def merge_symbols(new_symbol: str, symbol: Symbol) -> SymbolLayer:
     assert len(new_symbol) == 1
 
     ns_class = get_ascii_class(new_symbol)
@@ -243,7 +243,7 @@ def merge_symbols(new_symbol: str, symbol: SymbolLayer) -> SymbolLayer:
 
     chars = symbol.chars | {new_symbol}
 
-    return SymbolLayer(
+    return Symbol(
         ns_class,
         chars=chars,
         is_class=len(chars) == len(get_class_characters(ns_class))
@@ -294,36 +294,36 @@ def get_class_characters(symbol_class: AsciiClass) -> set(str):
     raise ValueError()
 
 
-def build_new_symbol(symbol: str) -> SymbolLayer:
+def build_new_symbol(symbol: str) -> Symbol:
     symbol_class = get_ascii_class(symbol)
-    return SymbolLayer(
+    return Symbol(
         s_class=symbol_class,
         is_class=False,
         chars=set(symbol)
     )
 
 
-def build_new_token(word: str) -> TokenLayer:
-    return TokenLayer(
+def build_new_token(word: str) -> Token:
+    return Token(
         list(build_new_symbol(symbol) for symbol in word)
     )
 
 
-def build_new_branch(word: str) -> BranchLayer:
-    return BranchLayer(
+def build_new_branch(word: str) -> Branch:
+    return Branch(
        tokens=[
         build_new_token(token) for token in get_token_in_tuple(word)
        ] 
     )
 
 
-def merge_most_similar(branches: list[BranchLayer]) -> list[BranchLayer]:
+def merge_most_similar(branches: list[Branch]) -> list[Branch]:
     raise NotImplementedError()
 
 
 @dataclass
 class XTructure:
-    branches: list[BranchLayer] = field(default_factory=list)
+    branches: list[Branch] = field(default_factory=list)
 
     def d(self, t: tuple[str, ...]) -> float:
         return min(b.d(t) for b in self.branches)
@@ -344,9 +344,9 @@ class XTructure:
         if len(self.branches) > MAX_BRANCHES:
             self.branches = merge_most_similar(self.branches)
 
-    def _best_branch(self, word: str) -> BranchLayer:
+    def _best_branch(self, word: str) -> Branch:
         best_score = math.inf
-        best_branch: Optional[BranchLayer] = None
+        best_branch: Optional[Branch] = None
 
         for branch in self.branches:
             branch_score = branch.fit_score(word)
