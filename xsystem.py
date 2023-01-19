@@ -21,7 +21,7 @@ ALPHA = 1/5
 MAX_BRANCHES = 3
 BRANCHING_THRESHORLD = .85
 
-DELIMITERS=r"[-#.,]"
+DELIMITERS=r"[-#., ]"
 
 
 class AsciiClass(Enum):
@@ -97,7 +97,12 @@ class Symbol:
         if self.is_class:
             return get_ascii_class_pattern(self.s_class)
         else:
-            return "[" + "".join(self.chars) + "]"
+            return "[" + "".join(sanitize(c) for c in self.chars) + "]"
+
+
+def sanitize(c: str) -> str:
+    if c in ".^$*+?()[{\\|":
+        return f"\{c}"
 
     
 def get_ascii_class_pattern(cls: AsciiClass):
