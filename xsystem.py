@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 import math
 
 import sys
+import string
 
 from dataclasses import dataclass
 from dataclasses import field
@@ -12,10 +13,8 @@ from enum import auto
 import re
 from re import Pattern
 from re import Match
-from itertools import product
 from typing import Generator
 from typing import Optional
-import string
 
 ALPHA = 1/5
 MAX_BRANCHES = 3
@@ -238,7 +237,7 @@ def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
     raise ValueError()
     
 
-def merge_symbols(new_symbol: str, symbol: Symbol) -> SymbolLayer:
+def merge_symbols(new_symbol: str, symbol: Symbol) -> Symbol:
     assert len(new_symbol) == 1
 
     ns_class = get_ascii_class(new_symbol)
@@ -270,30 +269,31 @@ def get_class_characters(symbol_class: AsciiClass) -> set(str):
         raise ValueError()
         
     if symbol_class == AsciiClass.DIGIT:
-        return set("0123456789")
+        return set(string.digits)
     
     if symbol_class == AsciiClass.GRAPH:
         return get_class_characters(AsciiClass.ALPHA) & get_class_characters(AsciiClass.PUNCT)
 
     if symbol_class == AsciiClass.LOWER:
-        return set("abcdefghijklmnopqrstuvwxyz")
+        return set(string.ascii_lowercase)
 
     if symbol_class == AsciiClass.PRINT:
         return get_class_characters(AsciiClass.ALNUM) & get_class_characters(AsciiClass.PUNCT) & get_ascii_class(AsciiClass.SPACE)
 
     if symbol_class == AsciiClass.PUNCT:
-        return "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" 
+        return set(string.punctuation)
 
     if symbol_class == AsciiClass.UPPER:
-        return set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        return set(string.ascii_uppercase)
 
     if symbol_class == AsciiClass.XDIGIT:
-        return set("0123456789ABCDEFabcdef")
+        return set(string.hexdigits)
 
     # SPACE = auto(),  # Space characters: in the ‘C’ locale, this is tab, newline, vertical tab, form feed, carriage return, and space. See Usage, for more discussion of matching newlines.
     if symbol_class == AsciiClass.SPACE:
         return set(
-            "\t\n\x0B\x0C\x0D "
+            # "\t\n\x0B\x0C\x0D "
+            string.whitespace
         )
 
     raise ValueError()
