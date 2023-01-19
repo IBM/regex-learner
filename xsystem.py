@@ -17,7 +17,7 @@ from typing import Generator
 from typing import Optional
 
 ALPHA = 1/5
-MAX_BRANCHES = 3
+MAX_BRANCHES = 8
 BRANCHING_THRESHORLD = .85
 
 DELIMITERS=r"[-#., ]"
@@ -95,6 +95,8 @@ class Symbol:
     def __str__(self) -> str:
         if self.is_class:
             return get_ascii_class_pattern(self.s_class)
+        elif len(self.chars) == 1:
+            return sanitize(next(iter(self.chars)))
         else:
             return "[" + "".join(sanitize(c) for c in self.chars) + "]"
 
@@ -102,6 +104,7 @@ class Symbol:
 def sanitize(c: str) -> str:
     if c in ".^$*+?()[{\\|":
         return f"\{c}"
+    return c
 
     
 def get_ascii_class_pattern(cls: AsciiClass):
@@ -151,6 +154,7 @@ class Token:
 
     def __str__(self) -> str:
         return "(" + "".join(str(symbol) for symbol in self.symbols) + ")"
+
 
 def get_token_in_tuple(t: str) -> Generator[str, None, None]:
     pattern: Pattern = re.compile(DELIMITERS)
@@ -371,15 +375,21 @@ def build_parser() -> ArgumentParser:
         description="",
     )
 
+    parser.add_argument("i", nargs=1, required=True, )
+
     return parser
 
 
 def main() -> int:
-    with open(sys.argv[1], encoding="utf-8") as input:
-        raise NotImplementedError()
+    x = XTructure()
+
+    for line in sys.stdin:
+        x.learn_new_word(line.strip())
+
+    print(x)
 
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemError(main())
+    raise SystemExit(main())

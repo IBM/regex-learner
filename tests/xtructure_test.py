@@ -1,3 +1,4 @@
+import pytest
 from xsystem import XTructure
 
 import re
@@ -44,3 +45,27 @@ def test_learnt_pattern(faker):
 
     for date in dataset:
         assert pattern.match(date), date
+
+
+def test_optional_characters():
+    x = XTructure()
+
+    x.learn_new_word("ABCDE")
+    x.learn_new_word("ABDE")
+
+    assert len(x.branches) == 2
+
+
+@pytest.mark.skip
+def test_file_atc():
+    x = XTructure()
+
+    with open("common/atc.csv") as input:
+        for line in input:
+            line = line.strip()
+            if len(line):
+                x.learn_new_word(line)
+
+    s = str(x)
+
+    assert x
