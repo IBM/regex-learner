@@ -16,8 +16,6 @@ from re import Match
 from typing import Generator
 from typing import Optional
 
-DELIMITERS=r"[-#., ]"
-
 
 class AsciiClass(Enum):
     ALNUM = auto(),  # Alphanumeric characters: ‘[:alpha:]’ and ‘[:digit:]’; in the ‘C’ locale and ASCII character encoding, this is the same as ‘[0-9A-Za-z]’.
@@ -34,22 +32,20 @@ class AsciiClass(Enum):
     XDIGIT = auto(),  # Hexadecimal digits: 0 1 2 3 4 5 6 7 8 9 A B C D E F a b c d e f.
     ANY = auto(),
 
-
-ASCII_CLASS_HIERARCHY = {
-    AsciiClass.ALNUM: AsciiClass.GRAPH,
-    AsciiClass.ALPHA: AsciiClass.ALNUM,
-    AsciiClass.BLANK: AsciiClass.SPACE,
-    AsciiClass.DIGIT: AsciiClass.ALNUM,
-    AsciiClass.GRAPH: AsciiClass.PRINT,
-    AsciiClass.LOWER: AsciiClass.ALPHA,
-    AsciiClass.PRINT: AsciiClass.ANY,
-    AsciiClass.PUNCT: AsciiClass.GRAPH,
-    AsciiClass.SPACE: AsciiClass.PRINT,
-    AsciiClass.UPPER: AsciiClass.ALPHA,
-    AsciiClass.CNTRL: AsciiClass.ANY,
-    AsciiClass.XDIGIT: AsciiClass.ALNUM,
-    AsciiClass.ANY: None
-}
+    def get_parent(cls: AsciiClass) -> Optional[AsciiClass]:
+        if cls == AsciiClass.ALNUM: return AsciiClass.GRAPH
+        if cls == AsciiClass.ALPHA: return AsciiClass.ALNUM
+        if cls == AsciiClass.BLANK: return AsciiClass.SPACE
+        if cls == AsciiClass.DIGIT: return AsciiClass.ALNUM
+        if cls == AsciiClass.GRAPH: return AsciiClass.PRINT
+        if cls == AsciiClass.LOWER: return AsciiClass.ALPHA
+        if cls == AsciiClass.PRINT: return AsciiClass.ANY
+        if cls == AsciiClass.PUNCT: return AsciiClass.GRAPH
+        if cls == AsciiClass.SPACE: return AsciiClass.PRINT
+        if cls == AsciiClass.UPPER: return AsciiClass.ALPHA
+        if cls == AsciiClass.CNTRL: return AsciiClass.ANY
+        if cls == AsciiClass.XDIGIT: return AsciiClass.ALNUM
+        if cls == AsciiClass.ANY: return None
 
 
 def get_ascii_class(s: str) -> AsciiClass:
@@ -152,8 +148,8 @@ class Token:
         return "(" + "".join(str(symbol) for symbol in self.symbols) + ")"
 
 
-def get_token_in_tuple(t: str) -> Generator[str, None, None]:
-    pattern: Pattern = re.compile(DELIMITERS)
+def get_token_in_tuple(t: str, delimiters: str = r"[-#., ]") -> Generator[str, None, None]:
+    pattern: Pattern = re.compile(delimiters)
 
     last_match: Optional[Match] = None
 
@@ -178,16 +174,13 @@ class NullToken(Token):
         return 1.0 * len(t)
 
 
-NULL_TOKEN = NullToken()
-
-
 @dataclass
 class Branch:
     tokens: list[Token] = field(default_factory=list)
 
     def fit_score(self, t: str, alpha: float) -> float:
         tokens: Token = [
-            self.tokens[i] if i < len(self.tokens) else NULL_TOKEN for i, _ in enumerate(t)
+            self.tokens[i] if i < len(self.tokens) else NullToken() for i, _ in enumerate(t)
         ]
 
         return sum(
@@ -212,12 +205,10 @@ def merge_token(new_token: str, token: Token) -> Token:
 
 
 def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
-    global ASCII_CLASS_HIERARCHY
-
     c1_ancestors: set[AsciiClass] = {class1}
 
     while True:
-        class1 = ASCII_CLASS_HIERARCHY[class1]
+        class1 = AsciiClass.get_parent(class1)
         if class1 is None:
             break
     
@@ -227,7 +218,7 @@ def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
         if class2 in c1_ancestors:
             return class2
         else:
-            class2 = ASCII_CLASS_HIERARCHY[class2]
+            class2 = AsciiClass.get_parent(class2)
 
     if class2 is None:
         return AsciiClass.ANY
