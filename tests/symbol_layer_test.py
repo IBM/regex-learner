@@ -3,7 +3,6 @@ import string
 
 from xsystem import build_new_symbol
 from xsystem import AsciiClass
-from xsystem import merge_symbols
 from xsystem import Symbol
 
 
@@ -52,7 +51,7 @@ def test_symbol_merge_same_class():
         is_class=False
     )
 
-    merged = merge_symbols("b", symbol)
+    merged = symbol.merge("b")
 
     assert merged is not None
     assert not merged.is_class
@@ -67,7 +66,7 @@ def test_symbol_merge_different_class():
         is_class=False
     )
 
-    merged = merge_symbols("1", symbol)
+    merged = symbol.merge("1")
 
     assert merged is not None
     assert not merged.is_class
@@ -84,7 +83,7 @@ def test_symbol_merge_to_class():
 
     assert len(symbol.chars) == len(AsciiClass.get_class_characters(AsciiClass.LOWER)) - 1
 
-    merged = merge_symbols("c", symbol)
+    merged = symbol.merge("c")
 
     assert merged.is_class
     assert len(merged.chars) == len(AsciiClass.get_class_characters(AsciiClass.LOWER))

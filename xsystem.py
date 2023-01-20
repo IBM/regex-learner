@@ -173,6 +173,21 @@ class Symbol:
             return f"\{c}"
         return c
 
+    def merge(self, new_symbol: str) -> Symbol:
+        assert len(new_symbol) == 1
+
+        ns_class = AsciiClass.get_ascii_class(new_symbol)
+
+        if ns_class != self.s_class:
+            ns_class = find_common_ancestor(ns_class, self.s_class)
+
+        chars = self.chars | {new_symbol}
+
+        return Symbol(
+            ns_class,
+            chars=chars,
+            is_class=len(chars) == len(AsciiClass.get_class_characters(ns_class))
+        )
 
 
 @dataclass
@@ -190,7 +205,7 @@ class Token:
         assert len(new_token) == len(self.symbols)
 
         return Token(
-            symbols=[merge_symbols(ns, symbol) for ns, symbol in zip(Token.get_symbols_in_token(new_token), self.symbols)]
+            symbols=[symbol.merge(ns) for ns, symbol in zip(Token.get_symbols_in_token(new_token), self.symbols)]
         )
 
     @staticmethod
@@ -270,21 +285,6 @@ def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
     raise ValueError()
     
 
-def merge_symbols(new_symbol: str, symbol: Symbol) -> Symbol:
-    assert len(new_symbol) == 1
-
-    ns_class = AsciiClass.get_ascii_class(new_symbol)
-
-    if ns_class != symbol.s_class:
-        ns_class = find_common_ancestor(ns_class, symbol.s_class)
-
-    chars = symbol.chars | {new_symbol}
-
-    return Symbol(
-        ns_class,
-        chars=chars,
-        is_class=len(chars) == len(AsciiClass.get_class_characters(ns_class))
-    )
 
 
 def build_new_symbol(symbol: str) -> Symbol:
