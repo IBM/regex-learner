@@ -167,7 +167,6 @@ class AsciiClass(Enum):
         raise ValueError()
 
 
-
 @dataclass
 class Symbol:
     s_class: AsciiClass
