@@ -2,7 +2,6 @@ from xsystem import Branch
 from xsystem import Token
 from xsystem import Symbol
 from xsystem import AsciiClass
-from xsystem import get_class_characters
 import pytest
 
 

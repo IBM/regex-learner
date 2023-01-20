@@ -32,6 +32,7 @@ class AsciiClass(Enum):
     XDIGIT = auto(),  # Hexadecimal digits: 0 1 2 3 4 5 6 7 8 9 A B C D E F a b c d e f.
     ANY = auto(),
 
+    @staticmethod
     def get_parent(cls: AsciiClass) -> Optional[AsciiClass]:
         if cls == AsciiClass.ALNUM: return AsciiClass.GRAPH
         if cls == AsciiClass.ALPHA: return AsciiClass.ALNUM
@@ -47,28 +48,102 @@ class AsciiClass(Enum):
         if cls == AsciiClass.XDIGIT: return AsciiClass.ALNUM
         if cls == AsciiClass.ANY: return None
 
+    @staticmethod
+    def get_ascii_class_pattern(cls: AsciiClass):
+        if cls == AsciiClass.ALNUM:
+            return r"[:alnum:]"
+        if cls == AsciiClass.ALPHA:
+            return r"[:alpha:]"
+        if cls == AsciiClass.BLANK:
+            return r"[:blank:]"
+        if cls == AsciiClass.CNTRL:
+            return r"[:cntrl:]"
+        if cls == AsciiClass.DIGIT:
+            return r"[0-9]"
+        if cls == AsciiClass.GRAPH:
+            return r"[:graph:]"
+        if cls == AsciiClass.LOWER:
+            return r"[:lower:]"
+        if cls == AsciiClass.PRINT:
+            return r"[:print:]"
+        if cls == AsciiClass.PUNCT:
+            return r"[:punct:]"
+        if cls == AsciiClass.SPACE:
+            return r"[:space:]"
+        if cls == AsciiClass.UPPER:
+            return r"[:upper:]"
+        if cls == AsciiClass.XDIGIT:
+            return r"[:xdigit:]"
+        if cls == AsciiClass.ANY:
+            return r"."
 
-def get_ascii_class(s: str) -> AsciiClass:
-    if len(s) > 1:
-        raise ValueError("Expected single character")
+    @staticmethod
+    def get_class_characters(symbol_class: AsciiClass) -> set(str):
+        if symbol_class == AsciiClass.ALNUM:
+            return AsciiClass.get_class_characters(AsciiClass.ALPHA) & AsciiClass.get_class_characters(AsciiClass.DIGIT)
 
-    if s.isdigit():
-        return AsciiClass.DIGIT
+        if symbol_class == AsciiClass.ALPHA:
+            return AsciiClass.get_class_characters(AsciiClass.UPPER) & AsciiClass.get_class_characters(AsciiClass.LOWER)
 
-    if s.isalpha():
-        if s.islower():
-            return AsciiClass.LOWER
-        elif s.isupper():
-            return AsciiClass.UPPER
-        raise ValueError(f"{s} is ALPHA but neither lower or upper")
+        if symbol_class == AsciiClass.BLANK:
+            return set(" ", "\t")
 
-    if s.isspace():
-        return AsciiClass.SPACE
+        if symbol_class == AsciiClass.CNTRL:
+            # CNTRL = auto(),  # Control characters. In ASCII, these characters have octal codes 000 through 037, and 177 (DEL). In other character sets, these are the equivalent characters, if any.
+            raise ValueError()
+            
+        if symbol_class == AsciiClass.DIGIT:
+            return set(string.digits)
+        
+        if symbol_class == AsciiClass.GRAPH:
+            return AsciiClass.get_class_characters(AsciiClass.ALPHA) & AsciiClass.get_class_characters(AsciiClass.PUNCT)
+
+        if symbol_class == AsciiClass.LOWER:
+            return set(string.ascii_lowercase)
+
+        if symbol_class == AsciiClass.PRINT:
+            return AsciiClass.get_class_characters(AsciiClass.ALNUM) & AsciiClass.get_class_characters(AsciiClass.PUNCT) & AsciiClass.get_class_characters(AsciiClass.SPACE)
+
+        if symbol_class == AsciiClass.PUNCT:
+            return set(string.punctuation)
+
+        if symbol_class == AsciiClass.UPPER:
+            return set(string.ascii_uppercase)
+
+        if symbol_class == AsciiClass.XDIGIT:
+            return set(string.hexdigits)
+
+        if symbol_class == AsciiClass.SPACE:
+            return set(
+                # "\t\n\x0B\x0C\x0D "
+                string.whitespace
+            )
+
+        raise ValueError()
     
-    if s.isprintable():
-        return AsciiClass.PUNCT
+    @staticmethod
+    def get_ascii_class(s: str) -> AsciiClass:
+        if len(s) > 1:
+            raise ValueError("Expected single character")
 
-    raise ValueError(f"{s} unknown")
+        if s.isdigit():
+            return AsciiClass.DIGIT
+
+        if s.isalpha():
+            if s.islower():
+                return AsciiClass.LOWER
+            elif s.isupper():
+                return AsciiClass.UPPER
+            raise ValueError(f"{s} is ALPHA but neither lower or upper")
+
+        if s.isspace():
+            return AsciiClass.SPACE
+        
+        if s.isprintable():
+            return AsciiClass.PUNCT
+
+        raise ValueError(f"{s} unknown")
+
 
 
 @dataclass
@@ -78,7 +153,7 @@ class Symbol:
     is_class: bool
 
     def fit_score(self, s: str, alpha: float) -> float:
-        if get_ascii_class(s) == self.s_class:
+        if AsciiClass.get_ascii_class(s) == self.s_class:
             return 0
         if not self.is_class and s in self.chars:
             return alpha
@@ -86,51 +161,18 @@ class Symbol:
 
     def __str__(self) -> str:
         if self.is_class:
-            return get_ascii_class_pattern(self.s_class)
+            return AsciiClass.get_ascii_class_pattern(self.s_class)
         elif len(self.chars) == 1:
-            return sanitize(next(iter(self.chars)))
+            return self._sanitize(next(iter(self.chars)))
         else:
-            return "[" + "".join(sanitize(c) for c in self.chars) + "]"
+            return "[" + "".join(Symbol._sanitize(c) for c in self.chars) + "]"
 
+    @staticmethod
+    def _sanitize(c: str) -> str:
+        if c in ".^$*+?()[{\\|":
+            return f"\{c}"
+        return c
 
-def sanitize(c: str) -> str:
-    if c in ".^$*+?()[{\\|":
-        return f"\{c}"
-    return c
-
-    
-def get_ascii_class_pattern(cls: AsciiClass):
-    if cls == AsciiClass.ALNUM:
-        return r"[:alnum:]"
-    if cls == AsciiClass.ALPHA:
-        return r"[:alpha:]"
-    if cls == AsciiClass.BLANK:
-        return r"[:blank:]"
-    if cls == AsciiClass.CNTRL:
-        return r"[:cntrl:]"
-    if cls == AsciiClass.DIGIT:
-        return r"[0-9]"
-    if cls == AsciiClass.GRAPH:
-        return r"[:graph:]"
-    if cls == AsciiClass.LOWER:
-        return r"[:lower:]"
-    if cls == AsciiClass.PRINT:
-        return r"[:print:]"
-    if cls == AsciiClass.PUNCT:
-        return r"[:punct:]"
-    if cls == AsciiClass.SPACE:
-        return r"[:space:]"
-    if cls == AsciiClass.UPPER:
-        return r"[:upper:]"
-    if cls == AsciiClass.XDIGIT:
-        return r"[:xdigit:]"
-    if cls == AsciiClass.ANY:
-        return r"."
-
-
-def get_symbols_in_token(t: str) -> Generator[str, None, None]:
-    for c in t:
-        yield c
 
 
 @dataclass
@@ -139,10 +181,22 @@ class Token:
 
     def fit_score(self, t: str, alpha: float) -> float:
         return sum(
-            symbol.fit_score(tuple_element, alpha) for symbol, tuple_element in zip(self.symbols, get_symbols_in_token(t))
+            symbol.fit_score(tuple_element, alpha) for symbol, tuple_element in zip(self.symbols, Token.get_symbols_in_token(t))
         ) + abs(
             len(t) - len(self.symbols)
         )
+    
+    def merge(self, new_token: str) -> Token:
+        assert len(new_token) == len(self.symbols)
+
+        return Token(
+            symbols=[merge_symbols(ns, symbol) for ns, symbol in zip(Token.get_symbols_in_token(new_token), self.symbols)]
+        )
+
+    @staticmethod
+    def get_symbols_in_token(t: str) -> Generator[str, None, None]:
+        for c in t:
+            yield c
 
     def __str__(self) -> str:
         return "(" + "".join(str(symbol) for symbol in self.symbols) + ")"
@@ -188,20 +242,10 @@ class Branch:
         )
 
     def add(self, word: str) -> None:
-        self.tokens = [merge_token(nt, token) for nt, token in zip(get_token_in_tuple(word), self.tokens)]
-
+        self.tokens = [token.merge(nt) for nt, token in zip(get_token_in_tuple(word), self.tokens)]
 
     def __str__(self) -> str:
         return "".join(str(token) for token in self.tokens)
-        
-
-
-def merge_token(new_token: str, token: Token) -> Token:
-    assert len(new_token) == len(token.symbols)
-
-    return Token(
-        symbols=[merge_symbols(ns, symbol) for ns, symbol in zip(get_symbols_in_token(new_token), token.symbols)]
-    )
 
 
 def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
@@ -229,7 +273,7 @@ def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
 def merge_symbols(new_symbol: str, symbol: Symbol) -> Symbol:
     assert len(new_symbol) == 1
 
-    ns_class = get_ascii_class(new_symbol)
+    ns_class = AsciiClass.get_ascii_class(new_symbol)
 
     if ns_class != symbol.s_class:
         ns_class = find_common_ancestor(ns_class, symbol.s_class)
@@ -239,56 +283,12 @@ def merge_symbols(new_symbol: str, symbol: Symbol) -> Symbol:
     return Symbol(
         ns_class,
         chars=chars,
-        is_class=len(chars) == len(get_class_characters(ns_class))
+        is_class=len(chars) == len(AsciiClass.get_class_characters(ns_class))
     )
 
 
-def get_class_characters(symbol_class: AsciiClass) -> set(str):
-    if symbol_class == AsciiClass.ALNUM:
-        return get_class_characters(AsciiClass.ALPHA) & get_class_characters(AsciiClass.DIGIT)
-
-    if symbol_class == AsciiClass.ALPHA:
-        return get_class_characters(AsciiClass.UPPER) & get_class_characters(AsciiClass.LOWER)
-
-    if symbol_class == AsciiClass.BLANK:
-        return set(" ", "\t")
-
-    if symbol_class == AsciiClass.CNTRL:
-        # CNTRL = auto(),  # Control characters. In ASCII, these characters have octal codes 000 through 037, and 177 (DEL). In other character sets, these are the equivalent characters, if any.
-        raise ValueError()
-        
-    if symbol_class == AsciiClass.DIGIT:
-        return set(string.digits)
-    
-    if symbol_class == AsciiClass.GRAPH:
-        return get_class_characters(AsciiClass.ALPHA) & get_class_characters(AsciiClass.PUNCT)
-
-    if symbol_class == AsciiClass.LOWER:
-        return set(string.ascii_lowercase)
-
-    if symbol_class == AsciiClass.PRINT:
-        return get_class_characters(AsciiClass.ALNUM) & get_class_characters(AsciiClass.PUNCT) & get_ascii_class(AsciiClass.SPACE)
-
-    if symbol_class == AsciiClass.PUNCT:
-        return set(string.punctuation)
-
-    if symbol_class == AsciiClass.UPPER:
-        return set(string.ascii_uppercase)
-
-    if symbol_class == AsciiClass.XDIGIT:
-        return set(string.hexdigits)
-
-    if symbol_class == AsciiClass.SPACE:
-        return set(
-            # "\t\n\x0B\x0C\x0D "
-            string.whitespace
-        )
-
-    raise ValueError()
-
-
 def build_new_symbol(symbol: str) -> Symbol:
-    symbol_class = get_ascii_class(symbol)
+    symbol_class = AsciiClass.get_ascii_class(symbol)
     return Symbol(
         s_class=symbol_class,
         is_class=False,
@@ -325,7 +325,10 @@ class XTructure:
     def d(self, t: tuple[str, ...]) -> float:
         return min(b.d(t) for b in self.branches)
 
-    def learn_new_word(self, word: str) -> None:
+    def learn_new_word(self, word: str) -> bool:
+        if len(word) == 0:
+            return False
+
         if not len(self.branches):
             self.branches.append(build_new_branch(word))
         else:
@@ -340,6 +343,8 @@ class XTructure:
 
         if len(self.branches) > self.max_branches:
             self.branches = merge_most_similar(self.branches)
+
+        return True
 
     def _best_branch(self, word: str) -> Branch:
         best_score = math.inf
@@ -380,9 +385,9 @@ def main() -> int:
         cmd.branch_threshold
     )
 
-    input = open(cmd.i) if cmd.i else sys.stdin
+    data_source = open(cmd.i) if cmd.i else sys.stdin
 
-    for line in sys.stdin:
+    for line in data_source:
         x.learn_new_word(line.strip())
 
     print(x)
