@@ -134,7 +134,7 @@ class AsciiClass(Enum):
                 return AsciiClass.LOWER
             elif s.isupper():
                 return AsciiClass.UPPER
-            raise ValueError(f"{s} is ALPHA but neither lower or upper")
+            return AsciiClass.ALPHA
 
         if s.isspace():
             return AsciiClass.SPACE
@@ -143,6 +143,28 @@ class AsciiClass(Enum):
             return AsciiClass.PUNCT
 
         raise ValueError(f"{s} unknown")
+    
+    @staticmethod
+    def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
+        c1_ancestors: set[AsciiClass] = {class1}
+
+        while True:
+            class1 = AsciiClass.get_parent(class1)
+            if class1 is None:
+                break
+        
+            c1_ancestors.add(class1)
+
+        while class2 is not None:
+            if class2 in c1_ancestors:
+                return class2
+            else:
+                class2 = AsciiClass.get_parent(class2)
+
+        if class2 is None:
+            return AsciiClass.ANY
+        
+        raise ValueError()
 
 
 
@@ -179,7 +201,7 @@ class Symbol:
         ns_class = AsciiClass.get_ascii_class(new_symbol)
 
         if ns_class != self.s_class:
-            ns_class = find_common_ancestor(ns_class, self.s_class)
+            ns_class = AsciiClass.find_common_ancestor(ns_class, self.s_class)
 
         chars = self.chars | {new_symbol}
 
@@ -263,30 +285,6 @@ class Branch:
         return "".join(str(token) for token in self.tokens)
 
 
-def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
-    c1_ancestors: set[AsciiClass] = {class1}
-
-    while True:
-        class1 = AsciiClass.get_parent(class1)
-        if class1 is None:
-            break
-    
-        c1_ancestors.add(class1)
-
-    while class2 is not None:
-        if class2 in c1_ancestors:
-            return class2
-        else:
-            class2 = AsciiClass.get_parent(class2)
-
-    if class2 is None:
-        return AsciiClass.ANY
-    
-    raise ValueError()
-    
-
-
-
 def build_new_symbol(symbol: str) -> Symbol:
     symbol_class = AsciiClass.get_ascii_class(symbol)
     return Symbol(
@@ -322,8 +320,8 @@ class XTructure:
 
     branches: list[Branch] = field(default_factory=list)
 
-    def d(self, t: tuple[str, ...]) -> float:
-        return min(b.d(t) for b in self.branches)
+    def fit_score(self, t: tuple[str, ...]) -> float:
+        return min(b.fit_score(t) for b in self.branches)
 
     def learn_new_word(self, word: str) -> bool:
         if len(word) == 0:
