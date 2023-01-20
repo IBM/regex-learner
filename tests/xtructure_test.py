@@ -39,12 +39,31 @@ def test_learnt_pattern(faker):
 
     x = XTructure()
 
-    map(x.learn_new_word, dataset)
+    list(map(x.learn_new_word, dataset))
+
+    assert str(x)
 
     pattern = re.compile(str(x))
 
     for date in dataset:
         assert pattern.match(date), date
+
+
+def test_ssn(faker):
+    dataset = [
+        faker.ssn() for _ in range(100)
+    ]
+
+    x = XTructure()
+
+    list(map(x.learn_new_word, dataset))
+
+    assert str(x)
+
+    pattern = re.compile(str(x))
+
+    for ssn in dataset:
+        assert pattern.match(ssn), ssn
 
 
 def test_optional_characters():

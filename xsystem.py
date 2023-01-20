@@ -16,10 +16,6 @@ from re import Match
 from typing import Generator
 from typing import Optional
 
-ALPHA = 1/5
-MAX_BRANCHES = 8
-BRANCHING_THRESHORLD = .85
-
 DELIMITERS=r"[-#., ]"
 
 
@@ -85,11 +81,11 @@ class Symbol:
     chars: set[str]
     is_class: bool
 
-    def d(self, s: str) -> float:
+    def fit_score(self, s: str, alpha: float) -> float:
         if get_ascii_class(s) == self.s_class:
             return 0
         if not self.is_class and s in self.chars:
-            return ALPHA
+            return alpha
         return 1
 
     def __str__(self) -> str:
@@ -145,9 +141,9 @@ def get_symbols_in_token(t: str) -> Generator[str, None, None]:
 class Token:
     symbols: list[Symbol] = field(default_factory=list)
 
-    def d(self, t: str) -> float:
+    def fit_score(self, t: str, alpha: float) -> float:
         return sum(
-            symbol.d(tuple_element) for symbol, tuple_element in zip(self.symbols, get_symbols_in_token(t))
+            symbol.fit_score(tuple_element, alpha) for symbol, tuple_element in zip(self.symbols, get_symbols_in_token(t))
         ) + abs(
             len(t) - len(self.symbols)
         )
@@ -189,20 +185,18 @@ NULL_TOKEN = NullToken()
 class Branch:
     tokens: list[Token] = field(default_factory=list)
 
-    def d(self, t: str) -> float:
+    def fit_score(self, t: str, alpha: float) -> float:
         tokens: Token = [
             self.tokens[i] if i < len(self.tokens) else NULL_TOKEN for i, _ in enumerate(t)
         ]
 
         return sum(
-            token.d(t_i) for token, t_i in zip(tokens, get_token_in_tuple(t))
+            token.fit_score(t_i, alpha) for token, t_i in zip(tokens, get_token_in_tuple(t))
         )
 
     def add(self, word: str) -> None:
         self.tokens = [merge_token(nt, token) for nt, token in zip(get_token_in_tuple(word), self.tokens)]
 
-    def fit_score(self, word: str) -> float:
-        return self.d(word)
 
     def __str__(self) -> str:
         return "".join(str(token) for token in self.tokens)
@@ -293,7 +287,6 @@ def get_class_characters(symbol_class: AsciiClass) -> set(str):
     if symbol_class == AsciiClass.XDIGIT:
         return set(string.hexdigits)
 
-    # SPACE = auto(),  # Space characters: in the ‘C’ locale, this is tab, newline, vertical tab, form feed, carriage return, and space. See Usage, for more discussion of matching newlines.
     if symbol_class == AsciiClass.SPACE:
         return set(
             # "\t\n\x0B\x0C\x0D "
@@ -332,6 +325,10 @@ def merge_most_similar(branches: list[Branch]) -> list[Branch]:
 
 @dataclass
 class XTructure:
+    alpha: float = 1/5
+    max_branches: int = 8
+    branching_threshold: float = 0.85
+
     branches: list[Branch] = field(default_factory=list)
 
     def d(self, t: tuple[str, ...]) -> float:
@@ -343,14 +340,14 @@ class XTructure:
         else:
             best_branch = self._best_branch(word)
 
-            if best_branch.d(word) < BRANCHING_THRESHORLD:
+            if best_branch.fit_score(word, self.alpha) < self.branching_threshold:
                 best_branch.add(word)
             else:
                 self.branches.append(
                     build_new_branch(word)
                 )
 
-        if len(self.branches) > MAX_BRANCHES:
+        if len(self.branches) > self.max_branches:
             self.branches = merge_most_similar(self.branches)
 
     def _best_branch(self, word: str) -> Branch:
@@ -358,7 +355,7 @@ class XTructure:
         best_branch: Optional[Branch] = None
 
         for branch in self.branches:
-            branch_score = branch.fit_score(word)
+            branch_score = branch.fit_score(word, self.alpha)
 
             if branch_score < best_score:
                 best_branch = branch
@@ -369,19 +366,30 @@ class XTructure:
         return "|".join(str(branch) for branch in self.branches)
 
 
-def build_parser() -> ArgumentParser:
+def parse_arguments() -> ArgumentParser:
     parser = ArgumentParser(
         prog="",
         description="",
     )
 
-    parser.add_argument("i", nargs=1, required=True, )
+    parser.add_argument("-i")
+    parser.add_argument("--max-branch", type=int, default=3)
+    parser.add_argument("--alpha", type=float, default=1/5)
+    parser.add_argument("--branch-threshold", type=float, default=.85)
 
-    return parser
+    return parser.parse_args()
 
 
 def main() -> int:
-    x = XTructure()
+    cmd = parse_arguments()
+
+    x = XTructure(
+        cmd.alpha,
+        cmd.max_branch,
+        cmd.branch_threshold
+    )
+
+    input = open(cmd.i) if cmd.i else sys.stdin
 
     for line in sys.stdin:
         x.learn_new_word(line.strip())

@@ -1,3 +1,4 @@
+import math
 import string
 
 from xsystem import get_ascii_class
@@ -10,7 +11,6 @@ from xsystem import Symbol
 
 def test_get_ascii_class():
     for c in string.printable:
-        # print(f"{c} is {get_ascii_class(c)}")
         ascii_class = get_ascii_class(c)
 
         assert ascii_class is not None
@@ -22,7 +22,7 @@ def test_symbol_creation():
 
     assert symbol
 
-    assert 0 == symbol.d("5")
+    assert 0 == symbol.fit_score("5", math.inf)
 
 
 def test_symbols_character_letters():
