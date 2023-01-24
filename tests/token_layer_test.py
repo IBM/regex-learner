@@ -1,12 +1,12 @@
-from xsystem import get_token_in_tuple
-from xsystem import build_new_token
+from xsystem import Token
+from xsystem import Branch
 
 def test_token_fit_score():
     pass
 
 
 def test_tokenization_one_item():
-    tokens = list(get_token_in_tuple("abcd"))
+    tokens = list(Branch.get_tokens_in_tuple("abcd"))
 
     assert tokens is not None
     assert len(tokens) == 1
@@ -16,7 +16,7 @@ def test_tokenization_one_item():
 def test_tokenization_function():
     example = "2023-10-11"
 
-    tokens = list(get_token_in_tuple(example))
+    tokens = list(Branch.get_tokens_in_tuple(example))
 
     assert tokens is not None
     assert len(tokens) == 5
@@ -28,7 +28,7 @@ def test_tokenization_function():
 
 
 def test_token_createion():
-    token = build_new_token("2023")
+    token = Token.build("2023")
 
     assert token
     assert len(token.symbols) == 4

@@ -210,6 +210,14 @@ class Symbol:
             is_class=len(chars) == len(AsciiClass.get_class_characters(ns_class))
         )
 
+    @staticmethod
+    def build(symbol: str) -> Symbol:
+        symbol_class = AsciiClass.get_ascii_class(symbol)
+        return Symbol(
+            s_class=symbol_class,
+            is_class=False,
+            chars=set(symbol)
+        )
 
 @dataclass
 class Token:
@@ -237,26 +245,11 @@ class Token:
     def __str__(self) -> str:
         return "(" + "".join(str(symbol) for symbol in self.symbols) + ")"
 
-
-def get_token_in_tuple(t: str, delimiters: str = r"[-#., ]") -> Generator[str, None, None]:
-    pattern: Pattern = re.compile(delimiters)
-
-    last_match: Optional[Match] = None
-
-    for m in re.finditer(pattern, t):
-        if last_match is None:
-            yield t[:m.start()]
-        else:
-            yield t[last_match.end():m.start()]
-
-        yield t[m.start():m.end()]
-
-        last_match = m
-
-    if last_match is None:
-        yield t
-    else:
-        yield t[last_match.end():]
+    @staticmethod
+    def build(word: str) -> Token:
+        return Token(
+            list(Symbol.build(symbol) for symbol in word)
+        )
 
 
 class NullToken(Token):
@@ -269,42 +262,48 @@ class Branch:
     tokens: list[Token] = field(default_factory=list)
 
     def fit_score(self, t: str, alpha: float) -> float:
-        tokens: Token = [
+        tokens: list[Token] = [
             self.tokens[i] if i < len(self.tokens) else NullToken() for i, _ in enumerate(t)
         ]
 
         return sum(
-            token.fit_score(t_i, alpha) for token, t_i in zip(tokens, get_token_in_tuple(t))
+            token.fit_score(t_i, alpha) for token, t_i in zip(tokens, Branch.get_tokens_in_tuple(t))
         )
 
     def add(self, word: str) -> None:
-        self.tokens = [token.merge(nt) for nt, token in zip(get_token_in_tuple(word), self.tokens)]
+        self.tokens = [token.merge(nt) for nt, token in zip(Branch.get_tokens_in_tuple(word), self.tokens)]
 
     def __str__(self) -> str:
         return "".join(str(token) for token in self.tokens)
 
+    @staticmethod
+    def get_tokens_in_tuple(t: str, delimiters: str = r"[-#., ]") -> Generator[str, None, None]:
+        pattern: Pattern = re.compile(delimiters)
 
-def build_new_symbol(symbol: str) -> Symbol:
-    symbol_class = AsciiClass.get_ascii_class(symbol)
-    return Symbol(
-        s_class=symbol_class,
-        is_class=False,
-        chars=set(symbol)
-    )
+        last_match: Optional[Match] = None
 
+        for m in re.finditer(pattern, t):
+            if last_match is None:
+                yield t[:m.start()]
+            else:
+                yield t[last_match.end():m.start()]
 
-def build_new_token(word: str) -> Token:
-    return Token(
-        list(build_new_symbol(symbol) for symbol in word)
-    )
+            yield t[m.start():m.end()]
 
+            last_match = m
 
-def build_new_branch(word: str) -> Branch:
-    return Branch(
-       tokens=[
-        build_new_token(token) for token in get_token_in_tuple(word)
-       ] 
-    )
+        if last_match is None:
+            yield t
+        else:
+            yield t[last_match.end():]
+
+    @staticmethod
+    def build(word: str) -> Branch:
+        return Branch(
+            tokens=[
+                Token.build(token) for token in Branch.get_tokens_in_tuple(word)
+            ]
+        )
 
 
 def merge_most_similar(branches: list[Branch]) -> list[Branch]:
@@ -327,7 +326,7 @@ class XTructure:
             return False
 
         if not len(self.branches):
-            self.branches.append(build_new_branch(word))
+            self.branches.append(Branch.build(word))
         else:
             best_branch = self._best_branch(word)
 
@@ -335,7 +334,7 @@ class XTructure:
                 best_branch.add(word)
             else:
                 self.branches.append(
-                    build_new_branch(word)
+                    Branch.build(word)
                 )
 
         if len(self.branches) > self.max_branches:

@@ -1,7 +1,6 @@
 import math
 import string
 
-from xsystem import build_new_symbol
 from xsystem import AsciiClass
 from xsystem import Symbol
 
@@ -15,7 +14,7 @@ def test_get_ascii_class():
 
 
 def test_symbol_creation():
-    symbol = build_new_symbol("5")
+    symbol = Symbol.build("5")
 
     assert symbol
 
