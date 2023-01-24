@@ -1,5 +1,6 @@
 from __future__ import annotations
 from argparse import ArgumentParser
+from itertools import combinations
 import math
 
 import sys
@@ -169,12 +170,13 @@ class AsciiClass(Enum):
 
 @dataclass
 class Symbol:
-    s_class: AsciiClass
+    a_class: AsciiClass
     chars: set[str]
     is_class: bool
+    is_optional: bool = False
 
     def fit_score(self, s: str, alpha: float) -> float:
-        if AsciiClass.get_ascii_class(s) == self.s_class:
+        if AsciiClass.get_ascii_class(s) == self.a_class:
             return 0
         if not self.is_class and s in self.chars:
             return alpha
@@ -182,11 +184,25 @@ class Symbol:
 
     def __str__(self) -> str:
         if self.is_class:
-            return AsciiClass.get_ascii_class_pattern(self.s_class)
+            return AsciiClass.get_ascii_class_pattern(self.a_class)
         elif len(self.chars) == 1:
-            return self._sanitize(next(iter(self.chars)))
+            return self._sanitize(next(iter(self.chars))) + ("?" if self.is_optional else "")
         else:
-            return "[" + "".join(Symbol._sanitize(c) for c in self.chars) + "]"
+            return "[" + "".join(Symbol._sanitize(c) for c in self.chars) + "]" + ("?" if self.is_optional else "")
+
+    def fit(self, other: Symbol) -> str:
+        if self.a_class == other.a_class:
+            return 0
+        if AsciiClass.find_common_ancestor(self.a_class, other.a_class) == other.a_class:
+            return 0
+        if AsciiClass.find_common_ancestor(self.a_class, other.a_class) == self.a_class:
+            return 0
+
+        common_chars = len(self.chars & other.chars)
+        if common_chars != 0:
+            return 1 - common_chars/len(self.chars)
+        else:
+            return math.inf
 
     @staticmethod
     def _sanitize(c: str) -> str:
@@ -197,24 +213,24 @@ class Symbol:
     def merge(self, new_symbol: str) -> Symbol:
         assert len(new_symbol) == 1
 
-        ns_class = AsciiClass.get_ascii_class(new_symbol)
+        na_class = AsciiClass.get_ascii_class(new_symbol)
 
-        if ns_class != self.s_class:
-            ns_class = AsciiClass.find_common_ancestor(ns_class, self.s_class)
+        if na_class != self.a_class:
+            na_class = AsciiClass.find_common_ancestor(na_class, self.a_class)
 
         chars = self.chars | {new_symbol}
 
         return Symbol(
-            ns_class,
+            na_class,
             chars=chars,
-            is_class=len(chars) == len(AsciiClass.get_class_characters(ns_class))
+            is_class=len(chars) == len(AsciiClass.get_class_characters(na_class))
         )
 
     @staticmethod
     def build(symbol: str) -> Symbol:
         symbol_class = AsciiClass.get_ascii_class(symbol)
         return Symbol(
-            s_class=symbol_class,
+            a_class=symbol_class,
             is_class=False,
             chars=set(symbol)
         )
@@ -236,6 +252,11 @@ class Token:
         return Token(
             symbols=[symbol.merge(ns) for ns, symbol in zip(Token.get_symbols_in_token(new_token), self.symbols)]
         )
+
+    def fit(self, other: Token) -> float:
+        return sum(
+            symbol.fit(other_symbol) for symbol, other_symbol in zip(self.symbols, other.symbols)
+        ) + abs(len(self.symbols) - len(other.symbols))
 
     @staticmethod
     def get_symbols_in_token(t: str) -> Generator[str, None, None]:
@@ -276,8 +297,16 @@ class Branch:
     def __str__(self) -> str:
         return "".join(str(token) for token in self.tokens)
 
+    def fit(self, other: Branch) -> float:
+        return sum(
+            token.fit(other_token) for token, other_token in zip(self.tokens, other.tokens)
+        ) + abs(len(self.tokens) - len(other.tokens))
+
+    def merge(self, other: Branch) -> Branch:
+        raise NotImplementedError()
+
     @staticmethod
-    def get_tokens_in_tuple(t: str, delimiters: str = r"[-#., ]") -> Generator[str, None, None]:
+    def get_tokens_in_tuple(t: str, delimiters: str = r"[-_/\\#., ]") -> Generator[str, None, None]:
         pattern: Pattern = re.compile(delimiters)
 
         last_match: Optional[Match] = None
@@ -304,10 +333,6 @@ class Branch:
                 Token.build(token) for token in Branch.get_tokens_in_tuple(word)
             ]
         )
-
-
-def merge_most_similar(branches: list[Branch]) -> list[Branch]:
-    raise NotImplementedError()
 
 
 @dataclass
@@ -338,7 +363,7 @@ class XTructure:
                 )
 
         if len(self.branches) > self.max_branches:
-            self.branches = merge_most_similar(self.branches)
+            self.branches = self.merge_most_similar()
 
         return True
 
@@ -353,6 +378,29 @@ class XTructure:
                 best_branch = branch
 
         return best_branch
+
+    def merge_most_similar(self):
+        min_distance = math.inf
+        m_bi: Optional[Branch] = None
+        m_bj: Optional[Branch] = None
+
+        for bi, bj in combinations(self.branches, 2):
+            assert bi is not bj
+
+            distance = bi.fit(bj)
+
+            if distance < min_distance:
+                min_distance = distance
+                m_bi = bi
+                m_bj = bj
+
+        assert m_bi is not None
+        assert m_bj is not None
+
+        self.branches.remove(m_bi)
+        self.branches.remove(m_bj)
+
+        self.branches.append(m_bi.merge(m_bj))
     
     def __str__(self) -> str:
         return "|".join(str(branch) for branch in self.branches)

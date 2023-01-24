@@ -1,5 +1,8 @@
+import codecs
+import csv
 import pytest
 from xsystem import XTructure
+import pkg_resources # type: ignore
 
 import re
 
@@ -88,3 +91,27 @@ def test_file_atc():
     s = str(x)
 
     assert x
+
+
+@pytest.mark.skip
+def test_realistic_data_account_id():
+    with pkg_resources.resource_stream(__name__, "csv files/account.csv") as io_stream:
+        data = codecs.getreader("utf8")(io_stream).readlines()
+
+    assert len(data) == 2615
+
+    rows = [line.strip().split(",") for line in data]
+
+    lengths = [len(rows) for row in rows]
+
+    assert min(lengths) == max(lengths)
+
+    for i in range(len(rows[0])):
+        x = XTructure()
+
+        for row in rows:
+            x.learn_new_word(row[i])
+        
+        print(x)
+
+        assert str(x)

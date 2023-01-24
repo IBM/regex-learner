@@ -27,6 +27,14 @@ def test_tokenization_function():
     assert tokens[4] == "11"
 
 
+def test_date_tokenization():
+    example = "12/10/1998"
+
+    tokens = list(Branch.get_tokens_in_tuple(example))
+
+    assert len(tokens) == 5
+
+
 def test_token_createion():
     token = Token.build("2023")
 

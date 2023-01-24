@@ -46,7 +46,7 @@ def test_symbols_charater_digits():
 def test_symbol_merge_same_class():
     symbol = Symbol(
         chars={"a"},
-        s_class=AsciiClass.LOWER,
+        a_class=AsciiClass.LOWER,
         is_class=False
     )
 
@@ -55,13 +55,13 @@ def test_symbol_merge_same_class():
     assert merged is not None
     assert not merged.is_class
     assert len(merged.chars) == 2
-    assert merged.s_class == AsciiClass.LOWER
+    assert merged.a_class == AsciiClass.LOWER
 
 
 def test_symbol_merge_different_class():
     symbol = Symbol(
         chars={"a"},
-        s_class=AsciiClass.LOWER,
+        a_class=AsciiClass.LOWER,
         is_class=False
     )
 
@@ -70,13 +70,13 @@ def test_symbol_merge_different_class():
     assert merged is not None
     assert not merged.is_class
     assert len(merged.chars) == 2
-    assert merged.s_class == AsciiClass.ALNUM
+    assert merged.a_class == AsciiClass.ALNUM
 
 
 def test_symbol_merge_to_class():
     symbol = Symbol(
         chars=set([s for s in AsciiClass.get_class_characters(AsciiClass.LOWER) if s != "c"]),
-        s_class=AsciiClass.LOWER,
+        a_class=AsciiClass.LOWER,
         is_class=False
     )
 
@@ -86,4 +86,4 @@ def test_symbol_merge_to_class():
 
     assert merged.is_class
     assert len(merged.chars) == len(AsciiClass.get_class_characters(AsciiClass.LOWER))
-    assert merged.s_class == AsciiClass.LOWER
+    assert merged.a_class == AsciiClass.LOWER

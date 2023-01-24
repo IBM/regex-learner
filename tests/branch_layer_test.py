@@ -12,10 +12,10 @@ def test_add():
         tokens=[
             Token(
                 symbols=[
-                    Symbol(chars=set(["1"]), s_class=AsciiClass.DIGIT, is_class=False),
-                    Symbol(chars=set(["2"]), s_class=AsciiClass.DIGIT, is_class=False),
-                    Symbol(chars=set(["3"]), s_class=AsciiClass.DIGIT, is_class=False),
-                    Symbol(chars=set(["4"]), s_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol(chars=set(["1"]), a_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol(chars=set(["2"]), a_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol(chars=set(["3"]), a_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol(chars=set(["4"]), a_class=AsciiClass.DIGIT, is_class=False),
                 ]
             )
         ]
@@ -32,9 +32,17 @@ def test_add():
     for i, symbol in enumerate(branch.tokens[0].symbols):
         assert symbol is not None
         assert not symbol.is_class
-        assert symbol.s_class == AsciiClass.DIGIT
+        assert symbol.a_class == AsciiClass.DIGIT
         
         if i != 0:
             assert len(symbol.chars) == 1
 
     assert len(branch.tokens[0].symbols[0].chars) == 2
+
+
+def test_fit_score_simmetric():
+    "ABC"
+    b1 = Branch.build("ABC")
+    b2 = Branch.build("CDE")
+
+    assert b1.fit(b2) == b2.fit(b1)
