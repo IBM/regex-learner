@@ -71,3 +71,33 @@ def test_merge_similar_length():
     assert b_merged is not None
     assert len(b_merged.tokens) == 1
     assert len(b_merged.tokens[0].symbols) == 3
+
+
+def test_merge_different_length():
+    b1 = Branch.build("AB")
+    b2 = Branch.build("ABD")
+
+    b_merged = b1.merge(b2)
+
+    assert b_merged is not None
+    assert len(b_merged.tokens) == 1
+    assert len(b_merged.tokens[0].symbols) == 3
+    assert not b_merged.tokens[0].symbols[0].is_optional
+    assert not b_merged.tokens[0].symbols[1].is_optional
+    assert b_merged.tokens[0].symbols[2].is_optional
+
+
+def test_merge_different_token_numbers():
+    b1 = Branch.build("a-b-c")
+    b2 = Branch.build("a-b")
+
+    b_merged = b1.merge(b2)
+
+    assert b_merged is not None
+    assert len(b_merged.tokens) == 5
+
+    assert not b_merged.tokens[0].optional
+    assert not b_merged.tokens[1].optional
+    assert not b_merged.tokens[2].optional
+    assert b_merged.tokens[3].optional
+    assert b_merged.tokens[4].optional

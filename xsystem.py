@@ -246,12 +246,16 @@ class Token:
         )
     
     def merge(self, other: Token) -> Token:
+        symbols = [symbol.merge(other_symbol) for symbol, other_symbol in zip(self.symbols, other.symbols)]
+
         if len(self.symbols) == len(other.symbols):
-            return Token(
-                symbols=[symbol.merge(other_symbol) for symbol, other_symbol in zip(self.symbols, other.symbols)]
-            )
+            return Token(symbols=symbols, optional=self.optional or other.optional)
+        elif len(self.symbols) > len(other.symbols):
+            missing = [Symbol(s.a_class, s.chars, s.is_class, True) for s in self.symbols[len(other.symbols):]]
+        else:
+            missing = [Symbol(s.a_class, s.chars, s.is_class, True) for s in other.symbols[len(self.symbols):]]
         
-        raise NotImplementedError()
+        return Token(symbols=symbols + missing, optional=self.optional or other.optional)
 
     def fit(self, other: Token) -> float:
         return sum(
@@ -370,6 +374,7 @@ class XTructure:
 
         if not len(self.branches):
             self.branches.append(Branch.build(word))
+
         else:
             best_branch = self._best_branch(word)
 
@@ -380,8 +385,8 @@ class XTructure:
                     Branch.build(word)
                 )
 
-        if len(self.branches) > self.max_branches:
-            self.branches = self.merge_most_similar()
+            if len(self.branches) > self.max_branches:
+                self.branches = self.merge_most_similar()
 
         return True
 
@@ -419,6 +424,8 @@ class XTructure:
         self.branches.remove(m_bj)
 
         self.branches.append(m_bi.merge(m_bj))
+
+        return self.branches
     
     def __str__(self) -> str:
         return "|".join(str(branch) for branch in self.branches)

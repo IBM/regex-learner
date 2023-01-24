@@ -92,7 +92,6 @@ def test_file_atc():
     assert x
 
 
-@pytest.mark.skip
 def test_realistic_data_account_id():
     with pkg_resources.resource_stream(__name__, "csv files/account.csv") as io_stream:
         data = codecs.getreader("utf8")(io_stream).readlines()
