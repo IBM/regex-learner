@@ -1,5 +1,4 @@
 import codecs
-import csv
 import pytest
 from xsystem import XTructure
 import pkg_resources # type: ignore

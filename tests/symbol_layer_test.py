@@ -50,7 +50,7 @@ def test_symbol_merge_same_class():
         is_class=False
     )
 
-    merged = symbol.merge("b")
+    merged = symbol.merge(Symbol.build("b"))
 
     assert merged is not None
     assert not merged.is_class
@@ -65,7 +65,7 @@ def test_symbol_merge_different_class():
         is_class=False
     )
 
-    merged = symbol.merge("1")
+    merged = symbol.merge(Symbol.build("1"))
 
     assert merged is not None
     assert not merged.is_class
@@ -82,7 +82,7 @@ def test_symbol_merge_to_class():
 
     assert len(symbol.chars) == len(AsciiClass.get_class_characters(AsciiClass.LOWER)) - 1
 
-    merged = symbol.merge("c")
+    merged = symbol.merge(Symbol.build("c"))
 
     assert merged.is_class
     assert len(merged.chars) == len(AsciiClass.get_class_characters(AsciiClass.LOWER))

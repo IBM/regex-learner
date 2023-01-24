@@ -202,7 +202,7 @@ class Symbol:
         if common_chars != 0:
             return 1 - common_chars/len(self.chars)
         else:
-            return math.inf
+            return 1
 
     @staticmethod
     def _sanitize(c: str) -> str:
@@ -210,15 +210,13 @@ class Symbol:
             return f"\{c}"
         return c
 
-    def merge(self, new_symbol: str) -> Symbol:
-        assert len(new_symbol) == 1
+    def merge(self, other: Symbol) -> Symbol:
+        if other.a_class != self.a_class:
+            na_class = AsciiClass.find_common_ancestor(other.a_class, self.a_class)
+        else:
+            na_class = self.a_class
 
-        na_class = AsciiClass.get_ascii_class(new_symbol)
-
-        if na_class != self.a_class:
-            na_class = AsciiClass.find_common_ancestor(na_class, self.a_class)
-
-        chars = self.chars | {new_symbol}
+        chars = self.chars | other.chars
 
         return Symbol(
             na_class,
@@ -238,6 +236,7 @@ class Symbol:
 @dataclass
 class Token:
     symbols: list[Symbol] = field(default_factory=list)
+    optional: bool = False
 
     def fit_score(self, t: str, alpha: float) -> float:
         return sum(
@@ -246,12 +245,13 @@ class Token:
             len(t) - len(self.symbols)
         )
     
-    def merge(self, new_token: str) -> Token:
-        assert len(new_token) == len(self.symbols)
-
-        return Token(
-            symbols=[symbol.merge(ns) for ns, symbol in zip(Token.get_symbols_in_token(new_token), self.symbols)]
-        )
+    def merge(self, other: Token) -> Token:
+        if len(self.symbols) == len(other.symbols):
+            return Token(
+                symbols=[symbol.merge(other_symbol) for symbol, other_symbol in zip(self.symbols, other.symbols)]
+            )
+        
+        raise NotImplementedError()
 
     def fit(self, other: Token) -> float:
         return sum(
@@ -264,7 +264,7 @@ class Token:
             yield c
 
     def __str__(self) -> str:
-        return "(" + "".join(str(symbol) for symbol in self.symbols) + ")"
+        return "(" + "".join(str(symbol) for symbol in self.symbols) + ")" + ("?" if self.optional else "")
 
     @staticmethod
     def build(word: str) -> Token:
@@ -283,16 +283,14 @@ class Branch:
     tokens: list[Token] = field(default_factory=list)
 
     def fit_score(self, t: str, alpha: float) -> float:
-        tokens: list[Token] = [
-            self.tokens[i] if i < len(self.tokens) else NullToken() for i, _ in enumerate(t)
-        ]
+        tokens: list[Token] = [self.tokens[i] if i < len(self.tokens) else NullToken() for i, _ in enumerate(t)]
 
         return sum(
             token.fit_score(t_i, alpha) for token, t_i in zip(tokens, Branch.get_tokens_in_tuple(t))
         )
 
     def add(self, word: str) -> None:
-        self.tokens = [token.merge(nt) for nt, token in zip(Branch.get_tokens_in_tuple(word), self.tokens)]
+        self.tokens = [token.merge(nt) for nt, token in zip(Branch.build(word).tokens, self.tokens)]
 
     def __str__(self) -> str:
         return "".join(str(token) for token in self.tokens)
@@ -303,7 +301,27 @@ class Branch:
         ) + abs(len(self.tokens) - len(other.tokens))
 
     def merge(self, other: Branch) -> Branch:
-        raise NotImplementedError()
+        tokens=[
+            token.merge(other_token) for token, other_token in zip(self.tokens, other.tokens)
+        ]
+
+        if len(self.tokens) == len(other.tokens):
+            return Branch(tokens)
+        elif len(self.tokens) > len(other.tokens):
+            missing = [
+                Token(token.symbols, True) for token in self.tokens[len(other.tokens):]
+            ]
+
+            assert len(tokens) + len(missing) == len(self.tokens)
+        else:
+            missing = [
+                Token(token.symbols, True) for token in other.tokens[len(self.tokens):]
+            ]
+
+            assert len(tokens) + len(missing) == len(other.tokens)
+
+        return Branch(tokens + missing)
+                
 
     @staticmethod
     def get_tokens_in_tuple(t: str, delimiters: str = r"[-_/\\#., ]") -> Generator[str, None, None]:

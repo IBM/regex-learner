@@ -5,17 +5,16 @@ from xsystem import AsciiClass
 
 
 def test_add():
-    # branch for "\d{4}"
     # examples: 1234
 
     branch = Branch(
         tokens=[
             Token(
                 symbols=[
-                    Symbol(chars=set(["1"]), a_class=AsciiClass.DIGIT, is_class=False),
-                    Symbol(chars=set(["2"]), a_class=AsciiClass.DIGIT, is_class=False),
-                    Symbol(chars=set(["3"]), a_class=AsciiClass.DIGIT, is_class=False),
-                    Symbol(chars=set(["4"]), a_class=AsciiClass.DIGIT, is_class=False),
+                    Symbol.build("1"),
+                    Symbol.build("2"),
+                    Symbol.build("3"),
+                    Symbol.build("4"),
                 ]
             )
         ]
@@ -24,7 +23,6 @@ def test_add():
     branch.add(
         "2234"
     )
-
 
     assert len(branch.tokens) == 1
     assert len(branch.tokens[0].symbols) == 4
@@ -41,8 +39,35 @@ def test_add():
 
 
 def test_fit_score_simmetric():
-    "ABC"
     b1 = Branch.build("ABC")
     b2 = Branch.build("CDE")
 
     assert b1.fit(b2) == b2.fit(b1)
+
+
+def test_fit_score_same():
+    b1 = Branch.build("ABC")
+    b1_same = Branch.build("ABC")
+
+    assert b1.fit(b1_same) == 0
+
+
+def test_fit_score_of_similar_is_not_inf():
+    b1 = Branch.build("ABC")
+    b2 = Branch.build("123")
+
+    assert b1.fit(b2) == 3
+
+    b3 = Branch.build("AB1")
+
+    assert b1.fit(b3) == 1
+
+def test_merge_similar_length():
+    b1 = Branch.build("ABC")
+    b2 = Branch.build("123")
+
+    b_merged = b1.merge(b2)
+
+    assert b_merged is not None
+    assert len(b_merged.tokens) == 1
+    assert len(b_merged.tokens[0].symbols) == 3
