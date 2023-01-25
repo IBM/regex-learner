@@ -26,12 +26,12 @@ def test_add():
 
     assert len(branch.tokens) == 1
     assert len(branch.tokens[0].symbols) == 4
-    
+
     for i, symbol in enumerate(branch.tokens[0].symbols):
         assert symbol is not None
         assert not symbol.is_class
         assert symbol.a_class == AsciiClass.DIGIT
-        
+
         if i != 0:
             assert len(symbol.chars) == 1
 
@@ -61,6 +61,7 @@ def test_fit_score_of_similar_is_not_inf():
     b3 = Branch.build("AB1")
 
     assert b1.fit(b3) == 1
+
 
 def test_merge_similar_length():
     b1 = Branch.build("ABC")

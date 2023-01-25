@@ -1,7 +1,7 @@
 import codecs
 import pytest
 from xsystem import XTructure
-import pkg_resources # type: ignore
+import pkg_resources  # type: ignore
 
 import re
 
@@ -11,7 +11,7 @@ def test_working_example_single_branch(faker):
 
     for _ in range(100):
         d = faker.date(pattern=r"%d-%m-%Y")
-        
+
         x.learn_new_word(d)
 
     assert x
@@ -89,6 +89,8 @@ def test_file_atc():
 
     s = str(x)
 
+    assert len(s)
+
     assert x
 
 
@@ -110,7 +112,7 @@ def test_realistic_data_account_id():
 
         for row in rows:
             x.learn_new_word(row[i])
-        
+
         print(x)
 
         assert str(x)

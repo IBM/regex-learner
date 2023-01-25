@@ -22,14 +22,14 @@ def test_symbol_creation():
 
 
 def test_symbols_character_letters():
-    for l in string.ascii_letters:
-        l_class = AsciiClass.get_ascii_class(l)
+    for letter in string.ascii_letters:
+        l_class = AsciiClass.get_ascii_class(letter)
 
         assert l_class in {
             AsciiClass.UPPER, AsciiClass.LOWER, AsciiClass.ALPHA
         }
 
-        assert l in AsciiClass.get_class_characters(l_class)
+        assert letter in AsciiClass.get_class_characters(l_class)
 
 
 def test_symbols_charater_digits():

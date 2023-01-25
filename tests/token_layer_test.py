@@ -1,6 +1,7 @@
 from xsystem import Token
 from xsystem import Branch
 
+
 def test_token_fit_score():
     pass
 

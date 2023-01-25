@@ -35,19 +35,32 @@ class AsciiClass(Enum):
 
     @staticmethod
     def get_parent(cls: AsciiClass) -> Optional[AsciiClass]:
-        if cls == AsciiClass.ALNUM: return AsciiClass.GRAPH
-        if cls == AsciiClass.ALPHA: return AsciiClass.ALNUM
-        if cls == AsciiClass.BLANK: return AsciiClass.SPACE
-        if cls == AsciiClass.DIGIT: return AsciiClass.ALNUM
-        if cls == AsciiClass.GRAPH: return AsciiClass.PRINT
-        if cls == AsciiClass.LOWER: return AsciiClass.ALPHA
-        if cls == AsciiClass.PRINT: return AsciiClass.ANY
-        if cls == AsciiClass.PUNCT: return AsciiClass.GRAPH
-        if cls == AsciiClass.SPACE: return AsciiClass.PRINT
-        if cls == AsciiClass.UPPER: return AsciiClass.ALPHA
-        if cls == AsciiClass.CNTRL: return AsciiClass.ANY
-        if cls == AsciiClass.XDIGIT: return AsciiClass.ALNUM
-        if cls == AsciiClass.ANY: return None
+        if cls == AsciiClass.ALNUM:
+            return AsciiClass.GRAPH
+        if cls == AsciiClass.ALPHA:
+            return AsciiClass.ALNUM
+        if cls == AsciiClass.BLANK:
+            return AsciiClass.SPACE
+        if cls == AsciiClass.DIGIT:
+            return AsciiClass.ALNUM
+        if cls == AsciiClass.GRAPH:
+            return AsciiClass.PRINT
+        if cls == AsciiClass.LOWER:
+            return AsciiClass.ALPHA
+        if cls == AsciiClass.PRINT:
+            return AsciiClass.ANY
+        if cls == AsciiClass.PUNCT:
+            return AsciiClass.GRAPH
+        if cls == AsciiClass.SPACE:
+            return AsciiClass.PRINT
+        if cls == AsciiClass.UPPER:
+            return AsciiClass.ALPHA
+        if cls == AsciiClass.CNTRL:
+            return AsciiClass.ANY
+        if cls == AsciiClass.XDIGIT:
+            return AsciiClass.ALNUM
+        if cls == AsciiClass.ANY:
+            return None
 
         raise ValueError(f"Unknown ASCII class {cls}")
 
@@ -95,10 +108,10 @@ class AsciiClass(Enum):
         if symbol_class == AsciiClass.CNTRL:
             # CNTRL = auto(),  # Control characters. In ASCII, these characters have octal codes 000 through 037, and 177 (DEL). In other character sets, these are the equivalent characters, if any.
             raise ValueError()
-            
+
         if symbol_class == AsciiClass.DIGIT:
             return set(string.digits)
-        
+
         if symbol_class == AsciiClass.GRAPH:
             return AsciiClass.get_class_characters(AsciiClass.ALPHA) & AsciiClass.get_class_characters(AsciiClass.PUNCT)
 
@@ -124,7 +137,7 @@ class AsciiClass(Enum):
             )
 
         raise ValueError()
-    
+
     @staticmethod
     def get_ascii_class(s: str) -> AsciiClass:
         if len(s) > 1:
@@ -142,12 +155,12 @@ class AsciiClass(Enum):
 
         if s.isspace():
             return AsciiClass.SPACE
-        
+
         if s.isprintable():
             return AsciiClass.PUNCT
 
         raise ValueError(f"{s} unknown")
-    
+
     @staticmethod
     def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
         parent: Optional[AsciiClass] = class1
@@ -170,7 +183,7 @@ class AsciiClass(Enum):
 
         if parent is None:
             return AsciiClass.ANY
-        
+
         raise ValueError()
 
 
@@ -206,7 +219,7 @@ class Symbol:
 
         common_chars = len(self.chars & other.chars)
         if common_chars != 0:
-            return 1 - common_chars/len(self.chars)
+            return 1 - common_chars / len(self.chars)
         else:
             return 1
 
@@ -239,6 +252,7 @@ class Symbol:
             chars=set(symbol)
         )
 
+
 @dataclass
 class Token:
     symbols: list[Symbol] = field(default_factory=list)
@@ -250,7 +264,7 @@ class Token:
         ) + abs(
             len(t) - len(self.symbols)
         )
-    
+
     def merge(self, other: Token) -> Token:
         symbols = [symbol.merge(other_symbol) for symbol, other_symbol in zip(self.symbols, other.symbols)]
 
@@ -260,7 +274,7 @@ class Token:
             missing = [Symbol(s.a_class, s.chars, s.is_class, True) for s in self.symbols[len(other.symbols):]]
         else:
             missing = [Symbol(s.a_class, s.chars, s.is_class, True) for s in other.symbols[len(self.symbols):]]
-        
+
         return Token(symbols=symbols + missing, optional=self.optional or other.optional)
 
     def fit(self, other: Token) -> float:
@@ -311,7 +325,7 @@ class Branch:
         ) + abs(len(self.tokens) - len(other.tokens))
 
     def merge(self, other: Branch) -> Branch:
-        tokens=[
+        tokens = [
             token.merge(other_token) for token, other_token in zip(self.tokens, other.tokens)
         ]
 
@@ -331,7 +345,6 @@ class Branch:
             assert len(tokens) + len(missing) == len(other.tokens)
 
         return Branch(tokens + missing)
-                
 
     @staticmethod
     def get_tokens_in_tuple(t: str, delimiters: str = r"[-_/\\#., ]") -> Generator[str, None, None]:
@@ -365,7 +378,7 @@ class Branch:
 
 @dataclass
 class XTructure:
-    alpha: float = 1/5
+    alpha: float = 1 / 5
     max_branches: int = 8
     branching_threshold: float = 0.85
 
@@ -434,7 +447,7 @@ class XTructure:
         self.branches.append(m_bi.merge(m_bj))
 
         return self.branches
-    
+
     def __str__(self) -> str:
         return "|".join(str(branch) for branch in self.branches)
 
@@ -448,7 +461,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument("-i", "--input", help="Path to the input source, defaults to stdin")
     parser.add_argument("-o", "--ouput", help="Path to the output file, defaults to stdout")
     parser.add_argument("--max-branch", type=int, default=8, help="Maximum number of branches allowed, defaults to 8")
-    parser.add_argument("--alpha", type=float, default=1/5, help="Weight for fitting tuples, defaults to 1/5")
+    parser.add_argument("--alpha", type=float, default=1 / 5, help="Weight for fitting tuples, defaults to 1/5")
     parser.add_argument("--branch-threshold", type=float, default=.85, help="Branching threshold, defaults to 0.85, relative to the fitting score alpha")
 
     return parser.parse_args()
@@ -456,8 +469,6 @@ def parse_arguments() -> Namespace:
 
 def main() -> int:
     cmd = parse_arguments()
-
-    print(cmd)
 
     x = XTructure(
         cmd.alpha,
@@ -471,6 +482,8 @@ def main() -> int:
         x.learn_new_word(line.strip())
 
     output = open(cmd.output) if cmd.output else sys.stdout
+
+    print(str(x), file=output)
 
     return 0
 
