@@ -1,5 +1,5 @@
 from __future__ import annotations
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from itertools import combinations
 import math
 
@@ -12,8 +12,8 @@ from dataclasses import field
 from enum import Enum
 from enum import auto
 import re
-from re import Pattern
 from re import Match
+from re import Pattern
 from typing import Generator
 from typing import Optional
 
@@ -49,8 +49,10 @@ class AsciiClass(Enum):
         if cls == AsciiClass.XDIGIT: return AsciiClass.ALNUM
         if cls == AsciiClass.ANY: return None
 
+        raise ValueError(f"Unknown ASCII class {cls}")
+
     @staticmethod
-    def get_ascii_class_pattern(cls: AsciiClass):
+    def get_ascii_class_pattern(cls: AsciiClass) -> str:
         if cls == AsciiClass.ALNUM:
             return r"[:alnum:]"
         if cls == AsciiClass.ALPHA:
@@ -77,9 +79,10 @@ class AsciiClass(Enum):
             return r"[:xdigit:]"
         if cls == AsciiClass.ANY:
             return r"."
+        raise ValueError(f"Unsupported ASCII class {cls}")
 
     @staticmethod
-    def get_class_characters(symbol_class: AsciiClass) -> set(str):
+    def get_class_characters(symbol_class: AsciiClass) -> set[str]:
         if symbol_class == AsciiClass.ALNUM:
             return AsciiClass.get_class_characters(AsciiClass.ALPHA) & AsciiClass.get_class_characters(AsciiClass.DIGIT)
 
@@ -87,7 +90,7 @@ class AsciiClass(Enum):
             return AsciiClass.get_class_characters(AsciiClass.UPPER) & AsciiClass.get_class_characters(AsciiClass.LOWER)
 
         if symbol_class == AsciiClass.BLANK:
-            return set(" ", "\t")
+            return set([" ", "\t"])
 
         if symbol_class == AsciiClass.CNTRL:
             # CNTRL = auto(),  # Control characters. In ASCII, these characters have octal codes 000 through 037, and 177 (DEL). In other character sets, these are the equivalent characters, if any.
@@ -147,22 +150,25 @@ class AsciiClass(Enum):
     
     @staticmethod
     def find_common_ancestor(class1: AsciiClass, class2: AsciiClass) -> AsciiClass:
-        c1_ancestors: set[AsciiClass] = {class1}
+        parent: Optional[AsciiClass] = class1
+        ancestors: set[AsciiClass] = {class1}
+
+        assert parent is not None
 
         while True:
-            class1 = AsciiClass.get_parent(class1)
-            if class1 is None:
+            parent = AsciiClass.get_parent(parent)
+            if parent is None:
                 break
-        
-            c1_ancestors.add(class1)
+            ancestors.add(parent)
 
-        while class2 is not None:
-            if class2 in c1_ancestors:
-                return class2
+        parent = class2
+        while parent is not None:
+            if parent in ancestors:
+                return parent
             else:
-                class2 = AsciiClass.get_parent(class2)
+                parent = AsciiClass.get_parent(parent)
 
-        if class2 is None:
+        if parent is None:
             return AsciiClass.ANY
         
         raise ValueError()
@@ -190,7 +196,7 @@ class Symbol:
         else:
             return "[" + "".join(Symbol._sanitize(c) for c in self.chars) + "]" + ("?" if self.is_optional else "")
 
-    def fit(self, other: Symbol) -> str:
+    def fit(self, other: Symbol) -> float:
         if self.a_class == other.a_class:
             return 0
         if AsciiClass.find_common_ancestor(self.a_class, other.a_class) == other.a_class:
@@ -207,7 +213,7 @@ class Symbol:
     @staticmethod
     def _sanitize(c: str) -> str:
         if c in ".^$*+?()[{\\|":
-            return f"\{c}"
+            return f"\\{c}"
         return c
 
     def merge(self, other: Symbol) -> Symbol:
@@ -329,9 +335,9 @@ class Branch:
 
     @staticmethod
     def get_tokens_in_tuple(t: str, delimiters: str = r"[-_/\\#., ]") -> Generator[str, None, None]:
-        pattern: Pattern = re.compile(delimiters)
+        pattern: Pattern[str] = re.compile(delimiters)
 
-        last_match: Optional[Match] = None
+        last_match: Optional[Match[str]] = None
 
         for m in re.finditer(pattern, t):
             if last_match is None:
@@ -365,8 +371,8 @@ class XTructure:
 
     branches: list[Branch] = field(default_factory=list)
 
-    def fit_score(self, t: tuple[str, ...]) -> float:
-        return min(b.fit_score(t) for b in self.branches)
+    def fit_score(self, t: str) -> float:
+        return min(b.fit_score(t, self.alpha) for b in self.branches)
 
     def learn_new_word(self, word: str) -> bool:
         if len(word) == 0:
@@ -400,9 +406,11 @@ class XTructure:
             if branch_score < best_score:
                 best_branch = branch
 
+        assert best_branch is not None
+
         return best_branch
 
-    def merge_most_similar(self):
+    def merge_most_similar(self) -> list[Branch]:
         min_distance = math.inf
         m_bi: Optional[Branch] = None
         m_bj: Optional[Branch] = None
@@ -431,7 +439,7 @@ class XTructure:
         return "|".join(str(branch) for branch in self.branches)
 
 
-def parse_arguments() -> ArgumentParser:
+def parse_arguments() -> Namespace:
     parser = ArgumentParser(
         prog="",
         description="",
@@ -449,20 +457,20 @@ def parse_arguments() -> ArgumentParser:
 def main() -> int:
     cmd = parse_arguments()
 
+    print(cmd)
+
     x = XTructure(
         cmd.alpha,
         cmd.max_branch,
         cmd.branch_threshold
     )
 
-    data_source = open(cmd.i) if cmd.i else sys.stdin
+    data_source = open(cmd.input) if cmd.input else sys.stdin
 
     for line in data_source:
         x.learn_new_word(line.strip())
 
-    output = open(cmd.o) if cmd.o else sys.stdout
-
-    print(x, file=output)
+    output = open(cmd.output) if cmd.output else sys.stdout
 
     return 0
 
