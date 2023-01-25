@@ -454,12 +454,12 @@ class XTructure:
 
 def parse_arguments() -> Namespace:
     parser = ArgumentParser(
-        prog="",
-        description="",
+        prog=sys.argv[0].split("/")[-1],
+        description="A simple tool to learn human readable a regular expression from examples",
     )
 
     parser.add_argument("-i", "--input", help="Path to the input source, defaults to stdin")
-    parser.add_argument("-o", "--ouput", help="Path to the output file, defaults to stdout")
+    parser.add_argument("-o", "--output", help="Path to the output file, defaults to stdout")
     parser.add_argument("--max-branch", type=int, default=8, help="Maximum number of branches allowed, defaults to 8")
     parser.add_argument("--alpha", type=float, default=1 / 5, help="Weight for fitting tuples, defaults to 1/5")
     parser.add_argument("--branch-threshold", type=float, default=.85, help="Branching threshold, defaults to 0.85, relative to the fitting score alpha")
