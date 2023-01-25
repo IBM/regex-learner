@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from setuptools import setup
+from setuptools import setup  # type: ignore
 
 setup()
