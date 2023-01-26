@@ -375,6 +375,9 @@ class Branch:
             ]
         )
 
+    def __repr__(self) -> str:
+        return f"Branch[{str(self)}"
+
 
 @dataclass
 class XTructure:
@@ -395,9 +398,9 @@ class XTructure:
             self.branches.append(Branch.build(word))
 
         else:
-            best_branch = self._best_branch(word)
+            best_branch, score = self._best_branch(word)
 
-            if best_branch.fit_score(word, self.alpha) < self.branching_threshold:
+            if score < self.branching_threshold:
                 best_branch.add(word)
             else:
                 self.branches.append(
@@ -409,7 +412,9 @@ class XTructure:
 
         return True
 
-    def _best_branch(self, word: str) -> Branch:
+    def _best_branch(self, word: str) -> tuple[Branch, float]:
+        assert len(self.branches)
+
         best_score = math.inf
         best_branch: Optional[Branch] = None
 
@@ -418,10 +423,12 @@ class XTructure:
 
             if branch_score < best_score:
                 best_branch = branch
+                best_score = branch_score
 
         assert best_branch is not None
+        assert best_score != math.inf
 
-        return best_branch
+        return best_branch, best_score
 
     def merge_most_similar(self) -> list[Branch]:
         min_distance = math.inf
