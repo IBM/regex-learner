@@ -5,5 +5,8 @@ python:
   - "3.9"
   - "3.10"
   - "3.11"
-install: pip install tox-travis
-script: tox
+install: pip install tox-travis bandit mypy flake8
+script:
+  - tox
+  - mypy xsystem.py tests
+  - flake8
