@@ -1,7 +1,7 @@
 import codecs
 import pytest
 from xsystem import XTructure
-import pkg_resources # type: ignore
+import pkg_resources  # type: ignore
 
 import re
 import random
@@ -140,11 +140,11 @@ def test_branching_issue_large_dataset():
 
     counts: dict[str, int] = dict()
 
-    dataset: list[str] = [] 
+    dataset: list[str] = []
 
     for _ in range(dataset_size):
         c = random.choice(list(values.keys()))
-        dataset.append(c) 
+        dataset.append(c)
         counts[c] = counts.get(c, 0) + 1
 
         if counts[c] == values[c]:
@@ -155,6 +155,7 @@ def test_branching_issue_large_dataset():
     all(map(x.learn_new_word, dataset))
 
     assert len(x.branches) == len(counts)
+
 
 def test_italian_fiscal_code(faker, faker_session_locale):
     faker_it = faker["it_IT"]
@@ -170,4 +171,3 @@ def test_italian_fiscal_code(faker, faker_session_locale):
     learnt_regex = str(x)
 
     assert learnt_regex
-
