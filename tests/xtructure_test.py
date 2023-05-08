@@ -1,6 +1,6 @@
 import codecs
 import pytest
-from .xsystem import XTructure
+from xsystem import XTructure
 import pkg_resources  # type: ignore
 
 import re
