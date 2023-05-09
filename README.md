@@ -10,6 +10,13 @@ This repository contains code and examples to assist in the exeuction of regular
 
 This is a basic readme. It will be completed as the prototype grows.
 
+# Installation
+
+The project can be installed via pip:
+```bash
+pip install xsystem
+```
+
 # Examples of usage
 
 Example of learning a date pattern from 100 examples of randomly sampled dates in the format DD-MM-YYYY.
