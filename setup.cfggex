@@ -1,5 +1,5 @@
 [metadata]
-name = xsystem
+name = regex-learner
 version = 0.0.1
 description = The project provides a tool/library implementing an automated regular expression building mechanism.
 
