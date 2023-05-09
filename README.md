@@ -14,7 +14,7 @@ This is a basic readme. It will be completed as the prototype grows.
 
 The project can be installed via pip:
 ```bash
-pip install xsystem
+pip install regex-learner
 ```
 
 # Examples of usage
