@@ -1,7 +1,6 @@
 ---
 name: User story
-about: Create a user story for this project. If this doesn't look right, [choose a
-  different type](https://github.com/IBM/regex-learner/issues/new/choose).
+about: Create a user story for this project.
 title: ''
 labels: ''
 assignees: ''
